@@ -1,0 +1,40 @@
+import Link from "next/link";
+import { Activity, Map, Plus, LayoutDashboard } from "lucide-react";
+import { LinkButton } from "@/components/ui/button";
+
+const NAV = [
+  { href: "/map", label: "Map", icon: Map },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+];
+
+export function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-brand-fg">
+            <Activity className="h-4 w-4" strokeWidth={2.5} />
+          </span>
+          <span>CivicPulse</span>
+        </Link>
+
+        <nav className="flex items-center gap-1">
+          {NAV.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface hover:text-fg sm:inline-flex"
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
+          <LinkButton href="/report" className="ml-1">
+            <Plus className="h-4 w-4" />
+            Report
+          </LinkButton>
+        </nav>
+      </div>
+    </header>
+  );
+}

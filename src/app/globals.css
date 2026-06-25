@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* CivicPulse design tokens — flat, solid colors only. No gradients. */
+@theme {
+  /* surfaces & text */
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f8;
+  --color-border: #e5e7eb;
+  --color-fg: #18181b;
+  --color-muted: #6b7280;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* brand */
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-fg: #ffffff;
+
+  /* severity (solid chips) */
+  --color-sev-low: #16a34a;
+  --color-sev-med: #f59e0b;
+  --color-sev-high: #ef4444;
+  --color-sev-critical: #b91c1c;
+
+  /* status (solid chips) */
+  --color-status-reported: #6b7280;
+  --color-status-verified: #2563eb;
+  --color-status-progress: #f59e0b;
+  --color-status-resolved: #16a34a;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Map (Leaflet) container needs explicit sizing later; keep tiles flat */
+.leaflet-container {
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
