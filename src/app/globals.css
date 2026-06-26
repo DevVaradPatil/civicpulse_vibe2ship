@@ -26,6 +26,13 @@
   --color-status-progress: #f59e0b;
   --color-status-resolved: #16a34a;
 
+  /* category (distinct categorical palette, flat) */
+  --color-cat-pothole: #e11d48;
+  --color-cat-water: #0ea5e9;
+  --color-cat-light: #f59e0b;
+  --color-cat-waste: #16a34a;
+  --color-cat-other: #7c3aed;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

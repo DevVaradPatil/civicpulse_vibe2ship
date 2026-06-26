@@ -66,6 +66,7 @@ export interface DashboardStats {
   byCategory: Record<IssueCategory, number>;
   bySeverity: { low: number; med: number; high: number; critical: number };
   last7Days: number;
+  trend7: { label: string; count: number }[];
 }
 
 export interface Hotspot {

@@ -33,6 +33,19 @@ export function computeStats(issues: Issue[]): DashboardStats {
     if (now - i.createdAt < SEVEN_DAYS) last7Days++;
   }
 
+  // Daily report counts for the last 7 days (oldest → newest).
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const trend7 = Array.from({ length: 7 }, (_, idx) => {
+    const dayStart = startOfToday.getTime() - (6 - idx) * dayMs;
+    const count = issues.filter(
+      (i) => i.createdAt >= dayStart && i.createdAt < dayStart + dayMs,
+    ).length;
+    const label = new Date(dayStart).toLocaleDateString("en-US", { weekday: "short" });
+    return { label, count };
+  });
+
   const total = issues.length;
   return {
     total,
@@ -42,6 +55,7 @@ export function computeStats(issues: Issue[]): DashboardStats {
     byCategory,
     bySeverity,
     last7Days,
+    trend7,
   };
 }
 
