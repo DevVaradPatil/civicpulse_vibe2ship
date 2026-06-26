@@ -1,10 +1,14 @@
 import "server-only";
-import { geohashForLocation } from "geofire-common";
+import { geohashForLocation, distanceBetween } from "geofire-common";
 import { db, ISSUES } from "@/lib/server/firebase-admin";
-import type { Issue, NewIssueInput } from "@/lib/types";
+import type { Complaint, Issue, NewIssueInput } from "@/lib/types";
 import { uploadImage, decodeImage, getFile } from "@/lib/server/storage";
 import { verifyResolution, type VerificationResult } from "@/lib/agents/verifier";
-import { CONFIRMATIONS_TO_VERIFY } from "@/lib/domain";
+import { draftComplaint } from "@/lib/agents/routing";
+import { CATEGORIES, CONFIRMATIONS_TO_VERIFY, type IssueCategory } from "@/lib/domain";
+
+/** Dedup agent (deterministic): count same-category issues within ~250m. */
+const DUP_RADIUS_KM = 0.25;
 
 function docToIssue(id: string, d: FirebaseFirestore.DocumentData): Issue {
   return {
@@ -23,6 +27,7 @@ function docToIssue(id: string, d: FirebaseFirestore.DocumentData): Issue {
     reporterId: d.reporterId,
     aiConfidence: d.aiConfidence,
     resolution: d.resolution,
+    routing: d.routing,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
   };
@@ -67,6 +72,44 @@ export async function listIssues(limit = 200): Promise<Issue[]> {
 export async function getIssue(id: string): Promise<Issue | null> {
   const doc = await db.collection(ISSUES).doc(id).get();
   return doc.exists ? docToIssue(doc.id, doc.data()!) : null;
+}
+
+/** Dedup agent: number of nearby same-category reports (excluding this one). */
+export async function countNearbyDuplicates(
+  lat: number,
+  lng: number,
+  category: IssueCategory,
+  excludeId: string,
+): Promise<number> {
+  const snap = await db.collection(ISSUES).where("category", "==", category).get();
+  let n = 0;
+  for (const doc of snap.docs) {
+    if (doc.id === excludeId) continue;
+    const d = doc.data();
+    if (distanceBetween([lat, lng], [d.lat, d.lng]) <= DUP_RADIUS_KM) n++;
+  }
+  return n;
+}
+
+/** Routing agent (cached): drafts/returns the authority complaint for an issue. */
+export async function getOrDraftComplaint(
+  id: string,
+  force = false,
+): Promise<Complaint | null> {
+  const ref = db.collection(ISSUES).doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const issue = docToIssue(id, doc.data()!);
+  if (issue.routing && !force) return issue.routing;
+
+  const drafted = await draftComplaint(issue);
+  const complaint: Complaint = {
+    ...drafted,
+    department: CATEGORIES[issue.category].department,
+    generatedAt: Date.now(),
+  };
+  await ref.update({ routing: complaint, updatedAt: Date.now() });
+  return complaint;
 }
 
 /** Community confirm. Idempotent per uid; auto-verifies at the threshold. */

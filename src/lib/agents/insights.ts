@@ -1,6 +1,6 @@
 import "server-only";
 import { Type } from "@google/genai";
-import { getAI, MODEL } from "@/lib/server/gemini";
+import { generate, MODEL } from "@/lib/server/gemini";
 import { CATEGORIES } from "@/lib/domain";
 import type { DashboardStats, Hotspot } from "@/lib/types";
 
@@ -62,7 +62,7 @@ ${hotspotLines || "none yet"}
 
 Return ONLY the structured JSON.`;
 
-  const res = await getAI().models.generateContent({
+  const res = await generate({
     model: MODEL,
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {

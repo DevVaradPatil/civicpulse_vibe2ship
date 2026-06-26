@@ -1,6 +1,6 @@
 import "server-only";
 import { Type } from "@google/genai";
-import { getAI, MODEL } from "@/lib/server/gemini";
+import { generate, MODEL } from "@/lib/server/gemini";
 import type { IssueCategory } from "@/lib/domain";
 import type { TriageResult } from "@/lib/types";
 
@@ -76,7 +76,7 @@ export async function triageImage(
   mimeType: string,
   categoryHint?: IssueCategory,
 ): Promise<TriageResult> {
-  const res = await getAI().models.generateContent({
+  const res = await generate({
     model: MODEL,
     contents: [
       {

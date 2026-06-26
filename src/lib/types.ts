@@ -25,6 +25,16 @@ export interface VerificationResult {
   note: string;
 }
 
+/** Result of the Routing agent (Gemini text) — an AI-drafted authority complaint. */
+export interface Complaint {
+  subject: string;
+  body: string;
+  priority: string;
+  slaEstimate: string;
+  department: string;
+  generatedAt: number;
+}
+
 /** An issue as stored in Firestore / returned to the client. */
 export interface Issue {
   id: string;
@@ -43,6 +53,7 @@ export interface Issue {
   reporterId?: string;
   aiConfidence?: number;
   resolution?: Resolution;
+  routing?: Complaint;
   createdAt: number;
   updatedAt: number;
 }

@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { MapPin, Users, Building2 } from "lucide-react";
-import { getIssue } from "@/lib/server/issues";
+import { getIssue, countNearbyDuplicates } from "@/lib/server/issues";
 import { CATEGORIES } from "@/lib/domain";
 import { SeverityBadge, StatusBadge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { StatusTimeline } from "@/components/status-timeline";
+import { AgentPipeline } from "@/components/agent-pipeline";
 import { IssueActions } from "@/components/issue-actions";
 import { timeAgo } from "@/lib/format";
 
@@ -20,6 +21,12 @@ export default async function IssuePage({
   if (!issue) notFound();
 
   const cat = CATEGORIES[issue.category];
+  const nearbyDuplicates = await countNearbyDuplicates(
+    issue.lat,
+    issue.lng,
+    issue.category,
+    issue.id,
+  );
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -67,6 +74,8 @@ export default async function IssuePage({
           </ul>
         </div>
       )}
+
+      <AgentPipeline issue={issue} nearbyDuplicates={nearbyDuplicates} />
 
       <IssueActions issue={issue} />
     </div>

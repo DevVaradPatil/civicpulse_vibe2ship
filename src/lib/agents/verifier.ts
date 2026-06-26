@@ -1,6 +1,6 @@
 import "server-only";
 import { Type } from "@google/genai";
-import { getAI, MODEL } from "@/lib/server/gemini";
+import { generate, MODEL } from "@/lib/server/gemini";
 import { CATEGORIES, type IssueCategory } from "@/lib/domain";
 import type { VerificationResult } from "@/lib/types";
 
@@ -38,7 +38,7 @@ Decide if the AFTER photo genuinely shows the same location/issue resolved.
 Be strict: mark resolved=true only if the fix is clearly visible. If the photos are unrelated, blurry, or the problem persists, resolved=false.
 Return ONLY the structured JSON.`;
 
-  const res = await getAI().models.generateContent({
+  const res = await generate({
     model: MODEL,
     contents: [
       {

@@ -18,3 +18,24 @@ export function getAI(): GoogleGenAI {
 export function geminiReady(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
 }
+
+type GenParams = Parameters<GoogleGenAI["models"]["generateContent"]>[0];
+
+/** generateContent with retry/backoff for transient 503 (overload) / 429 (rate) errors. */
+export async function generate(params: GenParams) {
+  const ai = getAI();
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await ai.models.generateContent(params);
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e instanceof Error ? e.message : e);
+      const retriable =
+        /503|UNAVAILABLE|overload|high demand|429|RESOURCE_EXHAUSTED/i.test(msg);
+      if (!retriable || attempt === 2) throw e;
+      await new Promise((r) => setTimeout(r, 900 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}

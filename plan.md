@@ -98,7 +98,7 @@ A server-side **Civic Agent orchestrator** chaining 5 specialized agents/tools. 
 - [x] **Issue detail:** photo, AI category + severity, location, status, confirmations. ✅
 - [x] **Status lifecycle:** Reported → Verified → In Progress → Resolved. ✅
 - [x] **Community verification:** confirm/upvote; mark resolved + proof photo → Resolution Verifier Agent. ✅
-- [ ] **Impact dashboard:** counts by category/status, resolution rate, hotspot map, AI insight summary. ← Phase 4
+- [x] **Impact dashboard:** counts by category/status, resolution rate, hotspots, AI insight summary + predictive insights. ✅
 - [x] **Gamification (light):** points for report/confirm/verified-resolution + leaderboard. ✅
 
 ### Stretch (only if time)
