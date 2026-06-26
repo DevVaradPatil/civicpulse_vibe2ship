@@ -47,6 +47,31 @@ export interface Issue {
   updatedAt: number;
 }
 
+export interface DashboardStats {
+  total: number;
+  resolved: number;
+  resolutionRate: number; // 0-1
+  byStatus: Record<IssueStatus, number>;
+  byCategory: Record<IssueCategory, number>;
+  bySeverity: { low: number; med: number; high: number; critical: number };
+  last7Days: number;
+}
+
+export interface Hotspot {
+  cell: string; // geohash prefix
+  lat: number;
+  lng: number;
+  count: number;
+  openCount: number;
+  topCategory: IssueCategory;
+}
+
+export interface Insights {
+  summary: string;
+  predictions: string[];
+  generatedAt: number;
+}
+
 export interface LeaderUser {
   uid: string;
   displayName: string;

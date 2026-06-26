@@ -91,15 +91,15 @@ A server-side **Civic Agent orchestrator** chaining 5 specialized agents/tools. 
 ## 5. Feature Set
 
 ### MVP (must ship)
-- [ ] Auth: Google sign-in + Anonymous (try-without-account).
-- [ ] **Report flow:** capture/upload photo → geolocation → Triage Agent auto-fills category/severity/title → submit.
-- [ ] **Map view** (Leaflet): issues as severity/category-colored markers; click → detail.
-- [ ] **List/feed view:** filter by category, status, distance.
-- [ ] **Issue detail:** photo, AI category + severity, location, status, confirmations count.
-- [ ] **Status lifecycle:** Reported → Verified → In Progress → Resolved.
-- [ ] **Community verification:** confirm/upvote an issue; mark resolved + proof photo → Resolution Verifier Agent.
-- [ ] **Impact dashboard:** counts by category/status, resolution rate, hotspot map, AI insight summary.
-- [ ] **Gamification (light):** points for report/confirm/verified-resolution + leaderboard.
+- [~] Auth: anonymous-first identity ✅ (localStorage uid+name); Google sign-in pending (needs Firebase console config).
+- [x] **Report flow:** capture/upload photo → geolocation → Triage Agent auto-fills category/severity/title → submit. ✅
+- [x] **Map view** (Leaflet): issues as severity-colored markers; click → detail. ✅
+- [x] **List/feed view** (side list on map). ✅ (filters TBD)
+- [x] **Issue detail:** photo, AI category + severity, location, status, confirmations. ✅
+- [x] **Status lifecycle:** Reported → Verified → In Progress → Resolved. ✅
+- [x] **Community verification:** confirm/upvote; mark resolved + proof photo → Resolution Verifier Agent. ✅
+- [ ] **Impact dashboard:** counts by category/status, resolution rate, hotspot map, AI insight summary. ← Phase 4
+- [x] **Gamification (light):** points for report/confirm/verified-resolution + leaderboard. ✅
 
 ### Stretch (only if time)
 - [ ] Voice input via Web Speech API (free, browser-native).
