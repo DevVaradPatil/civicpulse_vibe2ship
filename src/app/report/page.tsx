@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   Camera,
+  Upload,
   MapPin,
   Loader2,
   CheckCircle2,
@@ -20,7 +21,9 @@ import { fileToCompressedDataUrl, getPosition } from "@/lib/client/image";
 type Phase = "idle" | "analyzing" | "review" | "submitting" | "done";
 
 export default function ReportPage() {
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const [categoryHint, setCategoryHint] = useState<IssueCategory | "">("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [preview, setPreview] = useState<string>("");
   const [triage, setTriage] = useState<TriageResult | null>(null);
@@ -57,7 +60,10 @@ export default function ReportPage() {
       const res = await fetch("/api/triage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: dataUrl }),
+        body: JSON.stringify({
+          imageBase64: dataUrl,
+          categoryHint: categoryHint || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Triage failed");
@@ -105,7 +111,8 @@ export default function ReportPage() {
     setCoords(null);
     setCreatedId("");
     setError("");
-    if (fileRef.current) fileRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
+    if (uploadRef.current) uploadRef.current.value = "";
   }
 
   return (
@@ -115,8 +122,9 @@ export default function ReportPage() {
         Take or upload a photo. AI will categorize it and rate its severity.
       </p>
 
+      {/* Hidden inputs: camera vs gallery/files */}
       <input
-        ref={fileRef}
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -126,9 +134,42 @@ export default function ReportPage() {
           if (f) onPick(f);
         }}
       />
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPick(f);
+        }}
+      />
+
+      {/* Optional category pre-selection (improves AI accuracy) */}
+      {phase !== "done" && (
+        <div className="mt-6">
+          <label htmlFor="cat-hint" className="text-sm font-medium">
+            Issue type{" "}
+            <span className="font-normal text-muted">(optional — helps the AI)</span>
+          </label>
+          <select
+            id="cat-hint"
+            value={categoryHint}
+            onChange={(e) => setCategoryHint(e.target.value as IssueCategory | "")}
+            className="mt-1.5 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <option value="">Let AI detect automatically</option>
+            {CATEGORY_LIST.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Photo / picker */}
-      <div className="mt-6">
+      <div className="mt-4">
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -137,13 +178,22 @@ export default function ReportPage() {
             className="aspect-video w-full rounded-lg border border-border object-cover"
           />
         ) : (
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-surface text-muted hover:border-brand hover:text-brand"
-          >
-            <Camera className="h-8 w-8" />
-            <span className="text-sm font-medium">Take or upload a photo</span>
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => cameraRef.current?.click()}
+              className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-surface text-muted hover:border-brand hover:text-brand sm:aspect-video"
+            >
+              <Camera className="h-7 w-7" />
+              <span className="text-sm font-medium">Take photo</span>
+            </button>
+            <button
+              onClick={() => uploadRef.current?.click()}
+              className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-surface text-muted hover:border-brand hover:text-brand sm:aspect-video"
+            >
+              <Upload className="h-7 w-7" />
+              <span className="text-sm font-medium">Upload image</span>
+            </button>
+          </div>
         )}
       </div>
 

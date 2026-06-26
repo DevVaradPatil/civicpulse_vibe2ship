@@ -47,7 +47,7 @@ const schema = {
   ],
 };
 
-const PROMPT = `You are CivicPulse's triage agent for civic issues reported by citizens in Delhi, India.
+const BASE_PROMPT = `You are CivicPulse's triage agent for civic issues reported by citizens in Delhi, India.
 Analyze the attached photo of a reported public problem.
 
 Rules:
@@ -58,6 +58,13 @@ Rules:
 - List concrete hazards if any.
 Return ONLY the structured JSON.`;
 
+function buildPrompt(hint?: IssueCategory): string {
+  if (!hint || hint === "other") return BASE_PROMPT;
+  return `${BASE_PROMPT}
+
+The reporter pre-selected the category as "${hint}". Treat this as a strong hint and prefer it, unless the photo clearly shows a different category.`;
+}
+
 function clampSeverity(n: unknown): number {
   const v = Math.round(Number(n) || 1);
   return Math.min(5, Math.max(1, v));
@@ -67,6 +74,7 @@ function clampSeverity(n: unknown): number {
 export async function triageImage(
   base64: string,
   mimeType: string,
+  categoryHint?: IssueCategory,
 ): Promise<TriageResult> {
   const res = await getAI().models.generateContent({
     model: MODEL,
@@ -75,7 +83,7 @@ export async function triageImage(
         role: "user",
         parts: [
           { inlineData: { mimeType, data: base64 } },
-          { text: PROMPT },
+          { text: buildPrompt(categoryHint) },
         ],
       },
     ],

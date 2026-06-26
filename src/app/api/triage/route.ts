@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { geminiReady } from "@/lib/server/gemini";
 import { triageImage } from "@/lib/agents/triage";
+import { CATEGORIES, type IssueCategory } from "@/lib/domain";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { imageBase64?: string; mimeType?: string };
+  let body: { imageBase64?: string; mimeType?: string; categoryHint?: string };
   try {
     body = await req.json();
   } catch {
@@ -29,8 +30,13 @@ export async function POST(req: Request) {
   const mimeType = match?.[1] ?? body.mimeType ?? "image/jpeg";
   const data = match?.[2] ?? body.imageBase64;
 
+  const hint =
+    body.categoryHint && body.categoryHint in CATEGORIES
+      ? (body.categoryHint as IssueCategory)
+      : undefined;
+
   try {
-    const result = await triageImage(data, mimeType);
+    const result = await triageImage(data, mimeType, hint);
     return NextResponse.json(result);
   } catch (err) {
     console.error("triage failed", err);
