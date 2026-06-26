@@ -12,12 +12,13 @@ Full plan and phases: see [plan.md](plan.md). Submission deadline: **29 Jun 2026
 ## Stack
 - **Next.js 16** (App Router) + **React 19** + **TypeScript** — full-stack, one Cloud Run container, no separate backend.
 - **Tailwind v4** (CSS-config via `@theme` in `globals.css`; no `tailwind.config.js`).
-- **lucide-react** line icons.
-- Planned: Firebase Auth + Firestore (Spark, server via Admin SDK), Google Cloud Storage (photos), Gemini API (`gemini-2.5-flash`, server-side only — 2.0-flash is zeroed on free tier), Leaflet + OpenStreetMap (maps).
+- **lucide-react** icons, **react-hot-toast** notifications, **leaflet.markercluster**.
+- **Firebase Auth** (Google + Anonymous; ID tokens verified server-side via Admin SDK), **Firestore** (Admin SDK), **Google Cloud Storage** (photos), **Gemini API** (`gemini-2.5-flash`, server-side only — 2.0-flash is zeroed on free tier), **Leaflet + OpenStreetMap** (maps).
+- Firebase web config is served at runtime via `/api/firebase-config` (env `FIREBASE_WEB_*`), not baked into the build.
 
 ## Layout
-- `src/app/` — App Router routes: `/` (landing), `/report`, `/map`, `/dashboard` (last three are Phase 2/4 stubs).
-- `src/components/` — `site-header`, `page-stub`, and `ui/` primitives (`button`, `badge`).
+- `src/app/` — routes: `/` (landing), `/report`, `/map`, `/dashboard`, `/leaderboard`, `/profile`, `/u/[uid]`, `/issue/[id]`, and `/api/*`.
+- `src/components/` — `site-header`, `agent-pipeline`, `issue-*`, `before-after-slider`, `charts`, `insights-widget`, `profile-view`, `auth-*`, `theme-toggle`, `ui/` primitives.
 - `src/lib/domain.ts` — categories, statuses, severity helpers, Delhi config. **Single source of truth for the domain model.**
 - `Dockerfile` / `.dockerignore` — Cloud Run standalone image. `next.config.ts` sets `output: "standalone"`.
 - `deploy.sh` — `PROJECT_ID=... ./deploy.sh` builds from source and deploys to Cloud Run.
