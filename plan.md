@@ -91,7 +91,7 @@ A server-side **Civic Agent orchestrator** chaining 5 specialized agents/tools. 
 ## 5. Feature Set
 
 ### MVP (must ship)
-- [~] Auth: anonymous-first identity ✅ (localStorage uid+name); Google sign-in pending (needs Firebase console config).
+- [x] Auth: **Firebase Auth — Google sign-in + Anonymous** ✅ (server-verified ID tokens; profiles, tiers, badges).
 - [x] **Report flow:** capture/upload photo → geolocation → Triage Agent auto-fills category/severity/title → submit. ✅
 - [x] **Map view** (Leaflet): issues as severity-colored markers; click → detail. ✅
 - [x] **List/feed view** (side list on map). ✅ (filters TBD)
@@ -142,9 +142,10 @@ A server-side **Civic Agent orchestrator** chaining 5 specialized agents/tools. 
 ---
 
 ## 8. Submission Checklist
-- [ ] Live Cloud Run URL (public, stays up through evaluation).
-- [ ] Public GitHub repo with code + README + setup docs.
-- [ ] Project Description Google Doc (link-accessible): Problem Statement, Solution Overview, Key Features, Technologies Used, **Google Technologies Utilized**.
+- [x] Live Cloud Run URL (public): https://civicpulse-245651121772.us-central1.run.app
+- [x] Public GitHub repo with code + README: https://github.com/DevVaradPatil/civicpulse_vibe2ship
+- [x] Project Description content drafted → `SUBMISSION.md` (paste into a public Google Doc).
+- [ ] Create the Google Doc from `SUBMISSION.md` and set "anyone with the link" access.
 - [ ] Submit via BlockseBlock dashboard → Create Project → links → Final Submit (irreversible — only when fully satisfied).
 
 ## 9. Demo Narrative (for judges)
