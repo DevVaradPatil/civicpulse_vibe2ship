@@ -37,8 +37,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Dark mode — redefine surface/text tokens; brand & semantic colors carry over. */
+.dark {
+  --color-bg: #0b0b0c;
+  --color-surface: #1a1a1d;
+  --color-border: #2a2a2e;
+  --color-fg: #fafafa;
+  --color-muted: #a1a1aa;
+  color-scheme: dark;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
+  color-scheme: light;
 }
 
 body {

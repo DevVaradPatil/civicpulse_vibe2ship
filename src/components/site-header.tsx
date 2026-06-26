@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Activity, Map, Plus, LayoutDashboard, Trophy } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
 import { AuthButton } from "@/components/auth-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
   { href: "/map", label: "Map", icon: Map },
@@ -35,7 +36,8 @@ export function SiteHeader() {
             <Plus className="h-4 w-4" />
             Report
           </LinkButton>
-          <div className="ml-1">
+          <ThemeToggle />
+          <div>
             <AuthButton />
           </div>
         </nav>

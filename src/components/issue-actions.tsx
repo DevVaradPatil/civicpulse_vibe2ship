@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import toast from "react-hot-toast";
 import {
   ThumbsUp,
   Loader2,
@@ -8,11 +9,11 @@ import {
   Upload,
   ShieldCheck,
   ShieldX,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CONFIRMATIONS_TO_VERIFY } from "@/lib/domain";
 import { useAuth } from "@/components/auth-provider";
+import { BeforeAfterSlider } from "@/components/before-after-slider";
 import { fileToCompressedDataUrl } from "@/lib/client/image";
 import type { Issue, VerificationResult } from "@/lib/types";
 
@@ -20,8 +21,6 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
   const { user, authedFetch } = useAuth();
   const [issue, setIssue] = useState<Issue>(initial);
   const [busy, setBusy] = useState<null | "confirm" | "progress" | "resolve">(null);
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
   const [verification, setVerification] = useState<VerificationResult | null>(null);
   const proofRef = useRef<HTMLInputElement>(null);
 
@@ -29,8 +28,6 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
 
   async function confirm() {
     setBusy("confirm");
-    setError("");
-    setInfo("");
     try {
       const r = await authedFetch(`/api/issues/${issue.id}/confirm`, {
         method: "POST",
@@ -40,9 +37,17 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setIssue(d.issue);
-      if (!d.counted) setInfo("You've already confirmed this issue.");
+      if (d.counted) {
+        toast.success(
+          d.issue.status === "verified"
+            ? "Confirmed — issue is now verified! +5 points"
+            : "Confirmed · +5 points",
+        );
+      } else {
+        toast("You've already confirmed this issue.", { icon: "👍" });
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not confirm.");
+      toast.error(e instanceof Error ? e.message : "Could not confirm.");
     } finally {
       setBusy(null);
     }
@@ -50,14 +55,14 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
 
   async function markProgress() {
     setBusy("progress");
-    setError("");
     try {
       const r = await fetch(`/api/issues/${issue.id}/progress`, { method: "POST" });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setIssue(d.issue);
+      toast.success("Marked as in progress.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update.");
+      toast.error(e instanceof Error ? e.message : "Could not update.");
     } finally {
       setBusy(null);
     }
@@ -65,8 +70,8 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
 
   async function onProof(file: File) {
     setBusy("resolve");
-    setError("");
     setVerification(null);
+    const t = toast.loading("Verifier agent is comparing before/after…");
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       const r = await authedFetch(`/api/issues/${issue.id}/resolve`, {
@@ -82,8 +87,13 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
       if (!r.ok) throw new Error(d.error);
       setIssue(d.issue);
       setVerification(d.verification);
+      if (d.verification.resolved) {
+        toast.success("AI verified the fix! Issue resolved · +20 points", { id: t });
+      } else {
+        toast.error("AI couldn't confirm the fix from that photo.", { id: t });
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Verification failed.");
+      toast.error(e instanceof Error ? e.message : "Verification failed.", { id: t });
     } finally {
       setBusy(null);
       if (proofRef.current) proofRef.current.value = "";
@@ -177,24 +187,18 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
           {issue.resolution.note && (
             <p className="mt-1 text-sm text-muted">{issue.resolution.note}</p>
           )}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/media/${issue.resolution.proofPath}`}
-            alt="Resolution proof"
-            className="mt-3 aspect-video w-full rounded-md border border-border object-cover"
-          />
+          <div className="mt-3">
+            <BeforeAfterSlider
+              beforeSrc={`/api/media/${issue.photoPath}`}
+              afterSrc={`/api/media/${issue.resolution.proofPath}`}
+            />
+            <p className="mt-1.5 text-center text-xs text-muted">
+              Drag to compare before and after
+            </p>
+          </div>
         </div>
       )}
 
-      {error && (
-        <p className="text-sm text-sev-high">{error}</p>
-      )}
-      {info && (
-        <p className="flex items-center gap-1.5 text-sm text-muted">
-          <Info className="h-4 w-4" />
-          {info}
-        </p>
-      )}
     </div>
   );
 }

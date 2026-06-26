@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup, LayersControl } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { DELHI, severityMeta, CATEGORIES } from "@/lib/domain";
 import { SEVERITY_HEX, CATEGORY_HEX } from "@/lib/colors";
 import type { Issue } from "@/lib/types";
@@ -27,6 +30,38 @@ function markerIcon(color: string) {
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
+}
+
+function esc(s: string) {
+  return s.replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!,
+  );
+}
+
+function ClusteredMarkers({ issues, colorBy }: { issues: Issue[]; colorBy: ColorBy }) {
+  const map = useMap();
+  useEffect(() => {
+    const group = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 45,
+    });
+    for (const i of issues) {
+      const m = L.marker([i.lat, i.lng], { icon: markerIcon(colorFor(i, colorBy)) });
+      m.bindPopup(
+        `<div style="min-width:160px">
+          <p style="font-weight:600;margin:0">${esc(i.title)}</p>
+          <p style="font-size:12px;color:#737373;margin:2px 0">${CATEGORIES[i.category].label} · ${severityMeta(i.severity).label} severity</p>
+          <a href="/issue/${i.id}" style="font-size:13px;color:#2563eb;text-decoration:underline">View issue</a>
+        </div>`,
+      );
+      group.addLayer(m);
+    }
+    map.addLayer(group);
+    return () => {
+      map.removeLayer(group);
+    };
+  }, [map, issues, colorBy]);
+  return null;
 }
 
 export default function IssueMap({
@@ -56,6 +91,12 @@ export default function IssueMap({
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
         </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Dark">
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; OpenStreetMap'
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          />
+        </LayersControl.BaseLayer>
         <LayersControl.BaseLayer name="Satellite">
           <TileLayer
             attribution="Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics"
@@ -64,24 +105,7 @@ export default function IssueMap({
         </LayersControl.BaseLayer>
       </LayersControl>
 
-      {issues.map((i) => (
-        <Marker key={i.id} position={[i.lat, i.lng]} icon={markerIcon(colorFor(i, colorBy))}>
-          <Popup>
-            <div className="min-w-40">
-              <p className="font-medium">{i.title}</p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                {CATEGORIES[i.category].label} · {severityMeta(i.severity).label} severity
-              </p>
-              <Link
-                href={`/issue/${i.id}`}
-                className="mt-1 inline-block text-sm text-blue-600 underline"
-              >
-                View issue
-              </Link>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+      <ClusteredMarkers issues={issues} colorBy={colorBy} />
     </MapContainer>
   );
 }
