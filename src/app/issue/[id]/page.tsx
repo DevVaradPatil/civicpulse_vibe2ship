@@ -4,6 +4,8 @@ import { getIssue } from "@/lib/server/issues";
 import { CATEGORIES } from "@/lib/domain";
 import { SeverityBadge, StatusBadge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/ui/category-icon";
+import { StatusTimeline } from "@/components/status-timeline";
+import { IssueActions } from "@/components/issue-actions";
 import { timeAgo } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +43,10 @@ export default async function IssuePage({
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">{issue.title}</h1>
       <p className="mt-2 text-muted">{issue.description}</p>
 
+      <div className="mt-6 rounded-lg border border-border p-4">
+        <StatusTimeline status={issue.status} />
+      </div>
+
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Stat icon={<Users className="h-4 w-4" />} label="Confirmations" value={String(issue.confirmations)} />
         <Stat
@@ -62,9 +68,7 @@ export default async function IssuePage({
         </div>
       )}
 
-      <p className="mt-6 text-xs text-muted">
-        Community verification, status updates, and AI fix-verification arrive in Phase 3.
-      </p>
+      <IssueActions issue={issue} />
     </div>
   );
 }

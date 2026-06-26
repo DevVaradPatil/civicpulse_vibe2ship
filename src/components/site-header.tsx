@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Activity, Map, Plus, LayoutDashboard } from "lucide-react";
+import { Activity, Map, Plus, LayoutDashboard, Trophy } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
 
 const NAV = [
   { href: "/map", label: "Map", icon: Map },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ];
 

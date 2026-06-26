@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Camera,
@@ -17,6 +17,7 @@ import { SeverityBadge } from "@/components/ui/badge";
 import { CATEGORY_LIST, type IssueCategory, DELHI } from "@/lib/domain";
 import type { TriageResult } from "@/lib/types";
 import { fileToCompressedDataUrl, getPosition } from "@/lib/client/image";
+import { getIdentity, setName } from "@/lib/client/identity";
 
 type Phase = "idle" | "analyzing" | "review" | "submitting" | "done";
 
@@ -32,6 +33,11 @@ export default function ReportPage() {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string>("");
   const [createdId, setCreatedId] = useState<string>("");
+  const [reporter, setReporter] = useState<string>("");
+
+  useEffect(() => {
+    setReporter(getIdentity().name);
+  }, []);
 
   async function captureLocation() {
     setLocating(true);
@@ -82,6 +88,7 @@ export default function ReportPage() {
     if (!triage || !coords) return;
     setPhase("submitting");
     setError("");
+    const id = setName(reporter);
     try {
       const res = await fetch("/api/issues", {
         method: "POST",
@@ -92,6 +99,8 @@ export default function ReportPage() {
           lat: coords.lat,
           lng: coords.lng,
           triage: { ...triage, category },
+          reporterId: id.uid,
+          reporterName: id.name,
         }),
       });
       const data = await res.json();
@@ -271,6 +280,22 @@ export default function ReportPage() {
               : coords
                 ? `Location captured (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`
                 : "Location unavailable"}
+          </div>
+
+          {/* Reporter name (optional, for leaderboard) */}
+          <div>
+            <label htmlFor="reporter" className="text-sm font-medium">
+              Your name{" "}
+              <span className="font-normal text-muted">(optional, for the leaderboard)</span>
+            </label>
+            <input
+              id="reporter"
+              value={reporter}
+              onChange={(e) => setReporter(e.target.value)}
+              placeholder="Anonymous"
+              maxLength={40}
+              className="mt-1.5 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            />
           </div>
 
           <div className="flex gap-3">

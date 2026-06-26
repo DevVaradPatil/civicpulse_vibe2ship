@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createIssue, listIssues } from "@/lib/server/issues";
+import { awardPoints } from "@/lib/server/users";
 import type { NewIssueInput } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
 
   try {
     const issue = await createIssue(body);
+    await awardPoints(body.reporterId, body.reporterName, "report");
     return NextResponse.json({ issue }, { status: 201 });
   } catch (err) {
     console.error("create issue failed", err);

@@ -2,7 +2,9 @@ import "server-only";
 import { geohashForLocation } from "geofire-common";
 import { db, ISSUES } from "@/lib/server/firebase-admin";
 import type { Issue, NewIssueInput } from "@/lib/types";
-import { uploadImage, decodeImage } from "@/lib/server/storage";
+import { uploadImage, decodeImage, getFile } from "@/lib/server/storage";
+import { verifyResolution, type VerificationResult } from "@/lib/agents/verifier";
+import { CONFIRMATIONS_TO_VERIFY } from "@/lib/domain";
 
 function docToIssue(id: string, d: FirebaseFirestore.DocumentData): Issue {
   return {
@@ -65,4 +67,85 @@ export async function listIssues(limit = 200): Promise<Issue[]> {
 export async function getIssue(id: string): Promise<Issue | null> {
   const doc = await db.collection(ISSUES).doc(id).get();
   return doc.exists ? docToIssue(doc.id, doc.data()!) : null;
+}
+
+/** Community confirm. Idempotent per uid; auto-verifies at the threshold. */
+export async function confirmIssue(
+  id: string,
+  uid?: string,
+): Promise<{ issue: Issue; counted: boolean } | null> {
+  const ref = db.collection(ISSUES).doc(id);
+  return db.runTransaction(async (tx) => {
+    const doc = await tx.get(ref);
+    if (!doc.exists) return null;
+    const d = doc.data()!;
+    const confirmedBy: string[] = d.confirmedBy ?? [];
+    if (uid && confirmedBy.includes(uid)) {
+      return { issue: docToIssue(id, d), counted: false };
+    }
+    const confirmations = (d.confirmations ?? 0) + 1;
+    const updates: FirebaseFirestore.DocumentData = {
+      confirmations,
+      updatedAt: Date.now(),
+    };
+    if (uid) updates.confirmedBy = [...confirmedBy, uid];
+    if (d.status === "reported" && confirmations >= CONFIRMATIONS_TO_VERIFY) {
+      updates.status = "verified";
+    }
+    tx.update(ref, updates);
+    return { issue: docToIssue(id, { ...d, ...updates }), counted: true };
+  });
+}
+
+export async function setInProgress(id: string): Promise<Issue | null> {
+  const ref = db.collection(ISSUES).doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const updates = { status: "in_progress" as const, updatedAt: Date.now() };
+  await ref.update(updates);
+  return docToIssue(id, { ...doc.data()!, ...updates });
+}
+
+/** Resolve flow: runs the Resolution Verifier agent on before/after photos. */
+export async function resolveIssue(
+  id: string,
+  proofImage: string,
+  mimeType: string,
+): Promise<{ issue: Issue; verification: VerificationResult } | null> {
+  const ref = db.collection(ISSUES).doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const d = doc.data()!;
+
+  const [beforeBuf] = await getFile(d.photoPath).download();
+  const beforeMime = String(d.photoPath).endsWith(".png")
+    ? "image/png"
+    : "image/jpeg";
+
+  const { buffer: afterBuf, mimeType: afterMime } = decodeImage(proofImage, mimeType);
+  const proofPath = await uploadImage(afterBuf, afterMime, "resolutions");
+
+  const verification = await verifyResolution(
+    beforeBuf.toString("base64"),
+    beforeMime,
+    afterBuf.toString("base64"),
+    afterMime,
+    d.category,
+    d.title,
+  );
+
+  const resolution = {
+    proofPath,
+    verified: verification.resolved,
+    verifiedAt: Date.now(),
+    note: verification.note,
+  };
+  const updates: FirebaseFirestore.DocumentData = {
+    resolution,
+    updatedAt: Date.now(),
+  };
+  if (verification.resolved) updates.status = "resolved";
+  await ref.update(updates);
+
+  return { issue: docToIssue(id, { ...d, ...updates }), verification };
 }

@@ -74,6 +74,9 @@ export const STATUS_ORDER: IssueStatus[] = [
   "resolved",
 ];
 
+/** Community confirmations needed to auto-advance Reported → Verified. */
+export const CONFIRMATIONS_TO_VERIFY = 3;
+
 /** Severity 1-5 → label + color token (bg-sev-*). */
 export function severityMeta(severity: number): { label: string; token: string } {
   if (severity >= 5) return { label: "Critical", token: "sev-critical" };

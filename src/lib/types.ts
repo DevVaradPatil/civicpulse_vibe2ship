@@ -18,6 +18,13 @@ export interface Resolution {
   note?: string;
 }
 
+/** Result of the Resolution Verifier agent (Gemini, multimodal before/after). */
+export interface VerificationResult {
+  resolved: boolean;
+  confidence: number; // 0-1
+  note: string;
+}
+
 /** An issue as stored in Firestore / returned to the client. */
 export interface Issue {
   id: string;
@@ -40,6 +47,15 @@ export interface Issue {
   updatedAt: number;
 }
 
+export interface LeaderUser {
+  uid: string;
+  displayName: string;
+  points: number;
+  reportCount: number;
+  confirmCount: number;
+  resolveCount: number;
+}
+
 export type NewIssueInput = {
   imageBase64: string;
   mimeType: string;
@@ -47,4 +63,5 @@ export type NewIssueInput = {
   lng: number;
   triage: TriageResult;
   reporterId?: string;
+  reporterName?: string;
 };
