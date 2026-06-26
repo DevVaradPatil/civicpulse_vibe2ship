@@ -1,28 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, X, RefreshCw, Loader2, TrendingUp } from "lucide-react";
 import { timeAgo } from "@/lib/format";
 import type { Insights } from "@/lib/types";
 
+const CACHE_KEY = "cp_insights";
+const TTL = 5 * 60 * 1000; // 5 minutes
+
+function readCache(): Insights | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts < TTL) return data as Insights;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function writeCache(data: Insights) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function InsightsWidget() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true); // auto-show on load
   const [insights, setInsights] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function load(force = false) {
+    if (!force) {
+      const cached = readCache();
+      if (cached) {
+        setInsights(cached);
+        return;
+      }
+    }
     setLoading(true);
     try {
-      setInsights(await (await fetch(`/api/insights${force ? "?refresh=1" : ""}`)).json());
+      const data = (await (await fetch(`/api/insights${force ? "?refresh=1" : ""}`)).json()) as Insights;
+      setInsights(data);
+      writeCache(data);
     } finally {
       setLoading(false);
     }
   }
 
-  function openPanel() {
-    setOpen(true);
-    if (!insights) load();
-  }
+  // Auto-generate on mount (uses the localStorage cache when fresh).
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -77,7 +110,7 @@ export function InsightsWidget() {
         </div>
       ) : (
         <button
-          onClick={openPanel}
+          onClick={() => setOpen(true)}
           className="flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-medium text-brand-fg shadow-lg transition-colors hover:bg-brand-hover"
         >
           <Sparkles className="h-5 w-5" /> AI insights

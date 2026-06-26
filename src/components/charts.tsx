@@ -61,16 +61,17 @@ export function Donut({
 export function TrendArea({
   points,
   color = "var(--color-brand)",
-  height = 120,
 }: {
   points: { label: string; count: number }[];
   color?: string;
-  height?: number;
 }) {
-  const W = 320;
-  const H = height;
-  const pad = { top: 12, right: 8, bottom: 22, left: 8 };
-  const max = Math.max(1, ...points.map((p) => p.count));
+  const W = 460;
+  const H = 220;
+  const pad = { top: 16, right: 12, bottom: 26, left: 28 };
+  const rawMax = Math.max(1, ...points.map((p) => p.count));
+  // Nice integer max + tick step (2 or 3 ticks).
+  const max = Math.ceil(rawMax / 2) * 2;
+  const ticks = [0, max / 2, max];
   const innerW = W - pad.left - pad.right;
   const innerH = H - pad.top - pad.bottom;
   const step = points.length > 1 ? innerW / (points.length - 1) : 0;
@@ -81,13 +82,30 @@ export function TrendArea({
   const area = `${line} L ${x(points.length - 1)} ${pad.top + innerH} L ${x(0)} ${pad.top + innerH} Z`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="h-auto">
+      {/* Y axis gridlines + labels */}
+      {ticks.map((t) => (
+        <g key={t}>
+          <line
+            x1={pad.left}
+            x2={W - pad.right}
+            y1={y(t)}
+            y2={y(t)}
+            stroke="var(--color-border)"
+            strokeWidth={1}
+          />
+          <text x={pad.left - 6} y={y(t) + 3} textAnchor="end" className="fill-muted" style={{ fontSize: 10 }}>
+            {t}
+          </text>
+        </g>
+      ))}
+
       <path d={area} fill={color} opacity={0.12} />
       <path d={line} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
       {points.map((p, i) => (
         <g key={i}>
-          <circle cx={x(i)} cy={y(p.count)} r={3} fill={color} />
-          <text x={x(i)} y={H - 6} textAnchor="middle" className="fill-muted" style={{ fontSize: 10 }}>
+          <circle cx={x(i)} cy={y(p.count)} r={3.5} fill={color} />
+          <text x={x(i)} y={H - 8} textAnchor="middle" className="fill-muted" style={{ fontSize: 11 }}>
             {p.label}
           </text>
         </g>
