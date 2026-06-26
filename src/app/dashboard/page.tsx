@@ -1,23 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CheckCircle2,
-  CircleDot,
-  TrendingUp,
-  Flame,
-  Sparkles,
-  RefreshCw,
-  Loader2,
-  ListChecks,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, CircleDot, TrendingUp, Flame, ListChecks } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { Donut, TrendArea, HBar } from "@/components/charts";
+import { InsightsWidget } from "@/components/insights-widget";
 import { CATEGORIES, STATUSES, type IssueStatus, type IssueCategory } from "@/lib/domain";
 import { CATEGORY_COLOR, STATUS_COLOR, SEVERITY_COLOR } from "@/lib/colors";
-import { timeAgo } from "@/lib/format";
-import type { DashboardStats, Hotspot, Insights } from "@/lib/types";
+import type { DashboardStats, Hotspot } from "@/lib/types";
 
 const SEV = [
   { key: "critical", label: "Critical" },
@@ -37,13 +27,11 @@ function StatCard({
   label: string;
   value: string;
   sub?: string;
-  accent: string; // e.g. "bg-brand/10 text-brand"
+  accent: string;
 }) {
   return (
     <div className="rounded-xl border border-border p-4">
-      <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
-        {icon}
-      </span>
+      <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>{icon}</span>
       <div className="mt-3 text-2xl font-semibold">{value}</div>
       <div className="text-sm text-muted">{label}</div>
       {sub && <div className="text-xs text-muted">{sub}</div>}
@@ -51,13 +39,10 @@ function StatCard({
   );
 }
 
-function Card({ title, action, children }: { title: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
+function Card({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium">{title}</h2>
-        {action}
-      </div>
+      <h2 className="text-sm font-medium">{title}</h2>
       <div className="mt-4">{children}</div>
     </div>
   );
@@ -66,8 +51,6 @@ function Card({ title, action, children }: { title: React.ReactNode; action?: Re
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
-  const [insights, setInsights] = useState<Insights | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard")
@@ -77,17 +60,7 @@ export default function DashboardPage() {
         setHotspots(d.hotspots ?? []);
       })
       .catch(() => setStats(null));
-    fetch("/api/insights").then((r) => r.json()).then(setInsights).catch(() => {});
   }, []);
-
-  async function refreshInsights() {
-    setRefreshing(true);
-    try {
-      setInsights(await (await fetch("/api/insights?refresh=1")).json());
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   if (!stats) {
     return (
@@ -98,8 +71,8 @@ export default function DashboardPage() {
             <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-surface" />
           ))}
         </div>
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => (
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          {[0, 1].map((i) => (
             <div key={i} className="h-60 animate-pulse rounded-xl border border-border bg-surface" />
           ))}
         </div>
@@ -109,6 +82,7 @@ export default function DashboardPage() {
 
   const open = stats.total - stats.resolved;
   const catMax = Math.max(1, ...Object.values(stats.byCategory));
+  const sevMax = Math.max(1, ...Object.values(stats.bySeverity));
   const statusSegments = (Object.keys(stats.byStatus) as IssueStatus[]).map((s) => ({
     label: STATUSES[s].label,
     value: stats.byStatus[s],
@@ -120,7 +94,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Impact dashboard</h1>
       <p className="text-sm text-muted">Civic-issue health across Delhi.</p>
 
-      {/* Stat cards — distinct accent colors */}
+      {/* Stat cards */}
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={<ListChecks className="h-5 w-5" />} label="Total reports" value={String(stats.total)} accent="bg-brand/10 text-brand" />
         <StatCard icon={<CheckCircle2 className="h-5 w-5" />} label="Resolved" value={`${Math.round(stats.resolutionRate * 100)}%`} sub={`${stats.resolved} of ${stats.total}`} accent="bg-status-resolved/10 text-status-resolved" />
@@ -129,11 +103,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card title="Status breakdown">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center gap-4 sm:flex-row">
             <Donut segments={statusSegments} centerValue={String(stats.total)} centerLabel="issues" />
-            <ul className="space-y-1.5 text-sm">
+            <ul className="w-full space-y-1.5 text-sm">
               {statusSegments.map((s) => (
                 <li key={s.label} className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
@@ -147,41 +121,6 @@ export default function DashboardPage() {
 
         <Card title="Reports this week">
           <TrendArea points={stats.trend7} />
-        </Card>
-
-        <Card
-          title={
-            <span className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-brand" /> AI insights
-            </span>
-          }
-          action={
-            <Button variant="secondary" onClick={refreshInsights} disabled={refreshing} className="px-3 py-1.5 text-xs">
-              {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              Refresh
-            </Button>
-          }
-        >
-          {!insights ? (
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Loader2 className="h-4 w-4 animate-spin" /> Generating…
-            </div>
-          ) : (
-            <>
-              <p className="text-sm">{insights.summary}</p>
-              <ul className="mt-3 space-y-2">
-                {insights.predictions.slice(0, 4).map((p, i) => (
-                  <li key={i} className="flex gap-2 text-sm">
-                    <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                    <span>{p}</span>
-                  </li>
-                ))}
-              </ul>
-              {insights.generatedAt > 0 && (
-                <p className="mt-3 text-xs text-muted">Updated {timeAgo(insights.generatedAt)}</p>
-              )}
-            </>
-          )}
         </Card>
       </div>
 
@@ -208,14 +147,8 @@ export default function DashboardPage() {
 
         <Card title="By severity">
           <div className="space-y-3">
-            {SEV.map((s) => (
-              <HBar
-                key={s.key}
-                label={s.label}
-                value={stats.bySeverity[s.key]}
-                max={Math.max(1, ...Object.values(stats.bySeverity))}
-                color={SEVERITY_COLOR[s.key]}
-              />
+            {SEV.map((sv) => (
+              <HBar key={sv.key} label={sv.label} value={stats.bySeverity[sv.key]} max={sevMax} color={SEVERITY_COLOR[sv.key]} />
             ))}
           </div>
         </Card>
@@ -257,6 +190,8 @@ export default function DashboardPage() {
           )}
         </Card>
       </div>
+
+      <InsightsWidget />
     </div>
   );
 }

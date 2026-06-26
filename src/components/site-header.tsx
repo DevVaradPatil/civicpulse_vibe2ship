@@ -21,25 +21,24 @@ export function SiteHeader() {
           <span>CivicPulse</span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5 sm:gap-1">
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
-              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface hover:text-fg sm:inline-flex"
+              title={label}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-muted hover:bg-surface hover:text-fg"
             >
               <Icon className="h-4 w-4" />
-              {label}
+              <span className="hidden sm:inline">{label}</span>
             </Link>
           ))}
-          <LinkButton href="/report" className="ml-1">
+          <LinkButton href="/report" className="ml-0.5 px-3 sm:ml-1">
             <Plus className="h-4 w-4" />
-            Report
+            <span className="hidden sm:inline">Report</span>
           </LinkButton>
           <ThemeToggle />
-          <div>
-            <AuthButton />
-          </div>
+          <AuthButton />
         </nav>
       </div>
     </header>

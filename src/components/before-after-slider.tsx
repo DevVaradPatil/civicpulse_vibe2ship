@@ -33,12 +33,18 @@ export function BeforeAfterSlider({
       onPointerLeave={() => setDrag(false)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={afterSrc} alt="After the fix" className="absolute inset-0 h-full w-full object-cover" />
+      <img
+        src={afterSrc}
+        alt="After the fix"
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={beforeSrc}
         alt="Before"
-        className="absolute inset-0 h-full w-full object-cover"
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
       />
 

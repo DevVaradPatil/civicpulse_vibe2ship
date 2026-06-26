@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -9,6 +10,10 @@ import {
   ShieldCheck,
   Sparkles,
   ArrowRight,
+  ListChecks,
+  CheckCircle2,
+  Flame,
+  TrendingUp,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
 import { IssueCard } from "@/components/issue-card";
@@ -29,10 +34,10 @@ export default async function Home() {
   const recent = issues.slice(0, 4);
 
   const statCards = [
-    { value: String(stats.total), label: "Reports" },
-    { value: `${Math.round(stats.resolutionRate * 100)}%`, label: "Resolved" },
-    { value: String(hotspots.length), label: "Hotspots" },
-    { value: String(stats.last7Days), label: "This week" },
+    { value: String(stats.total), label: "Reports", icon: ListChecks, accent: "bg-brand/10 text-brand" },
+    { value: `${Math.round(stats.resolutionRate * 100)}%`, label: "Resolved", icon: CheckCircle2, accent: "bg-status-resolved/10 text-status-resolved" },
+    { value: String(hotspots.length), label: "Hotspots", icon: Flame, accent: "bg-sev-high/10 text-sev-high" },
+    { value: String(stats.last7Days), label: "This week", icon: TrendingUp, accent: "bg-cat-other/10 text-cat-other" },
   ];
 
   return (
@@ -81,10 +86,13 @@ export default async function Home() {
 
         {/* Live stats */}
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {statCards.map((s) => (
-            <div key={s.label} className="rounded-lg border border-border p-4">
-              <div className="text-2xl font-semibold">{s.value}</div>
-              <div className="text-sm text-muted">{s.label}</div>
+          {statCards.map(({ icon: Icon, value, label, accent }) => (
+            <div key={label} className="rounded-xl border border-border p-4">
+              <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <div className="mt-3 text-2xl font-semibold">{value}</div>
+              <div className="text-sm text-muted">{label}</div>
             </div>
           ))}
         </div>
@@ -95,18 +103,25 @@ export default async function Home() {
         <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
           A multi-agent pipeline does the work
         </h2>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-6 flex flex-col items-stretch gap-2 lg:flex-row lg:items-center">
           {AGENTS.map(({ icon: Icon, name, body }, i) => (
-            <div key={name} className="relative rounded-lg border border-border bg-surface p-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand text-brand-fg">
-                <Icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-3 font-medium">{name}</h3>
-              <p className="mt-1 text-sm text-muted">{body}</p>
+            <Fragment key={name}>
+              <div className="flex-1 rounded-xl border border-border bg-surface p-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-brand-fg">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="text-xs font-medium text-muted">Step {i + 1}</span>
+                </div>
+                <h3 className="mt-3 font-medium">{name}</h3>
+                <p className="mt-1 text-sm text-muted">{body}</p>
+              </div>
               {i < AGENTS.length - 1 && (
-                <ArrowRight className="absolute -right-2.5 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-border lg:block" />
+                <div className="flex shrink-0 items-center justify-center py-1 text-muted lg:py-0">
+                  <ArrowRight className="h-5 w-5 rotate-90 lg:rotate-0" />
+                </div>
               )}
-            </div>
+            </Fragment>
           ))}
         </div>
       </section>
