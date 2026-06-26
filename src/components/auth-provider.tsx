@@ -14,7 +14,7 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
-import { auth, googleProvider, firebaseConfigured } from "@/lib/client/firebase";
+import { ensureFirebase, googleProvider } from "@/lib/client/firebase";
 
 interface AuthCtx {
   user: User | null;
@@ -38,58 +38,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // No Firebase config yet → run without auth instead of crashing.
-    if (!firebaseConfigured || !auth) {
-      setLoading(false);
-      return;
-    }
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        setUser(u);
+    let unsub: (() => void) | undefined;
+    ensureFirebase().then((auth) => {
+      // No Firebase config → run without auth instead of crashing.
+      if (!auth) {
         setLoading(false);
-        // Sync display name / photo to the profile (server verifies the token).
-        if (!u.isAnonymous) {
+        return;
+      }
+      unsub = onAuthStateChanged(auth, async (u) => {
+        if (u) {
+          setUser(u);
+          setLoading(false);
+          // Sync display name / photo to the profile (server verifies the token).
+          if (!u.isAnonymous) {
+            try {
+              const token = await u.getIdToken();
+              await fetch("/api/me", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  displayName: u.displayName,
+                  photoURL: u.photoURL,
+                }),
+              });
+            } catch {
+              /* non-fatal */
+            }
+          }
+        } else {
+          // No session yet → sign in anonymously so every visitor has a stable uid.
           try {
-            const token = await u.getIdToken();
-            await fetch("/api/me", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                displayName: u.displayName,
-                photoURL: u.photoURL,
-              }),
-            });
+            await signInAnonymously(auth);
           } catch {
-            /* non-fatal */
+            setUser(null);
+            setLoading(false);
           }
         }
-      } else {
-        // No session yet → sign in anonymously so every visitor has a stable uid.
-        try {
-          await signInAnonymously(auth);
-        } catch {
-          setUser(null);
-          setLoading(false);
-        }
-      }
+      });
     });
-    return unsub;
+    return () => unsub?.();
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    await signInWithPopup(auth, googleProvider);
+    const auth = await ensureFirebase();
+    if (auth) await signInWithPopup(auth, googleProvider);
   }, []);
 
   const signOutUser = useCallback(async () => {
-    await signOut(auth); // listener re-signs in anonymously
+    const auth = await ensureFirebase();
+    if (auth) await signOut(auth); // listener re-signs in anonymously
   }, []);
 
   const authedFetch = useCallback(async (input: string, init: RequestInit = {}) => {
     const headers = new Headers(init.headers);
-    const u = auth.currentUser;
+    const auth = await ensureFirebase();
+    const u = auth?.currentUser;
     if (u) headers.set("Authorization", `Bearer ${await u.getIdToken()}`);
     return fetch(input, { ...init, headers });
   }, []);

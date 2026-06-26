@@ -11,11 +11,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# Firebase web config is public (client-side) and must be inlined at build time.
-ENV NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDWF6oer8Yp84j5SlqZ239DZe3GGUtGonI
-ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=civicpulse-v2s-01.firebaseapp.com
-ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=civicpulse-v2s-01
-ENV NEXT_PUBLIC_FIREBASE_APP_ID=1:245651121772:web:4d542a360d2f1ddd1b5a49
 RUN npm run build
 
 FROM node:22-alpine AS runner

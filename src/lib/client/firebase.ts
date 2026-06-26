@@ -2,20 +2,28 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 
-const config = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-// Guard so a missing config (e.g. during build before envs are set) doesn't crash SSR.
-const app: FirebaseApp | undefined = config.apiKey
-  ? getApps().length
-    ? getApp()
-    : initializeApp(config)
-  : undefined;
-
-export const auth = (app ? getAuth(app) : undefined) as Auth;
+// Firebase web config is fetched at runtime from /api/firebase-config (served from
+// server env) instead of being baked into the build — keeps it out of the repo/image.
 export const googleProvider = new GoogleAuthProvider();
-export const firebaseConfigured = Boolean(config.apiKey);
+
+let authInstance: Auth | undefined;
+let initPromise: Promise<Auth | null> | undefined;
+
+export function ensureFirebase(): Promise<Auth | null> {
+  if (authInstance) return Promise.resolve(authInstance);
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    try {
+      const res = await fetch("/api/firebase-config");
+      if (!res.ok) return null;
+      const config = await res.json();
+      if (!config.apiKey) return null;
+      const app: FirebaseApp = getApps().length ? getApp() : initializeApp(config);
+      authInstance = getAuth(app);
+      return authInstance;
+    } catch {
+      return null;
+    }
+  })();
+  return initPromise;
+}
