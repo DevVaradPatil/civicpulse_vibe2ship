@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { resolveIssue } from "@/lib/server/issues";
 import { awardPoints } from "@/lib/server/users";
 import { geminiReady } from "@/lib/server/gemini";
+import { getUserFromRequest } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -26,7 +27,10 @@ export async function POST(
   try {
     const result = await resolveIssue(id, body.imageBase64, body.mimeType ?? "image/jpeg");
     if (!result) return NextResponse.json({ error: "Issue not found." }, { status: 404 });
-    if (result.verification.resolved) await awardPoints(body.uid, body.name, "resolve");
+    if (result.verification.resolved) {
+      const authed = await getUserFromRequest(req);
+      await awardPoints(authed?.uid ?? body.uid, body.name ?? authed?.name, "resolve");
+    }
     return NextResponse.json(result);
   } catch (err) {
     console.error("resolve failed", err);

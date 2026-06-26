@@ -17,11 +17,12 @@ import { SeverityBadge } from "@/components/ui/badge";
 import { CATEGORY_LIST, type IssueCategory, DELHI } from "@/lib/domain";
 import type { TriageResult } from "@/lib/types";
 import { fileToCompressedDataUrl, getPosition } from "@/lib/client/image";
-import { getIdentity, setName } from "@/lib/client/identity";
+import { useAuth } from "@/components/auth-provider";
 
 type Phase = "idle" | "analyzing" | "review" | "submitting" | "done";
 
 export default function ReportPage() {
+  const { user, authedFetch } = useAuth();
   const cameraRef = useRef<HTMLInputElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [categoryHint, setCategoryHint] = useState<IssueCategory | "">("");
@@ -36,8 +37,8 @@ export default function ReportPage() {
   const [reporter, setReporter] = useState<string>("");
 
   useEffect(() => {
-    setReporter(getIdentity().name);
-  }, []);
+    if (user?.displayName) setReporter(user.displayName);
+  }, [user]);
 
   async function captureLocation() {
     setLocating(true);
@@ -88,9 +89,8 @@ export default function ReportPage() {
     if (!triage || !coords) return;
     setPhase("submitting");
     setError("");
-    const id = setName(reporter);
     try {
-      const res = await fetch("/api/issues", {
+      const res = await authedFetch("/api/issues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -99,8 +99,7 @@ export default function ReportPage() {
           lat: coords.lat,
           lng: coords.lng,
           triage: { ...triage, category },
-          reporterId: id.uid,
-          reporterName: id.name,
+          reporterName: reporter || user?.displayName || undefined,
         }),
       });
       const data = await res.json();

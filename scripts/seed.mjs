@@ -64,11 +64,12 @@ async function main() {
     const photoPath = `issues/seed-${n}.jpg`;
     await upload(photoPath, category);
     const createdAt = Date.now() - daysAgo * DAY;
+    const reporter = USERS[(n - 1) % USERS.length];
     const doc = {
       title, description: title + ".", category, severity, hazards: [],
       status, lat, lng, geohash: geohashForLocation([lat, lng]),
-      photoPath, confirmations, reporterId: null, aiConfidence: 0.9,
-      createdAt, updatedAt: createdAt,
+      photoPath, confirmations, reporterId: reporter[0], reporterName: reporter[1],
+      aiConfidence: 0.9, createdAt, updatedAt: createdAt,
     };
     if (resolved) {
       const proofPath = `resolutions/seed-${n}.jpg`;

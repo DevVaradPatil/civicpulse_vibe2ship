@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { confirmIssue } from "@/lib/server/issues";
 import { awardPoints } from "@/lib/server/users";
+import { getUserFromRequest } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 
@@ -10,8 +11,9 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const uid: string | undefined = body.uid;
-  const name: string | undefined = body.name;
+  const authed = await getUserFromRequest(req);
+  const uid: string | undefined = authed?.uid ?? body.uid;
+  const name: string | undefined = body.name ?? authed?.name;
 
   try {
     const result = await confirmIssue(id, uid);

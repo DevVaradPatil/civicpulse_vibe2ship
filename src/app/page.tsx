@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Camera,
   MapPin,
@@ -37,32 +38,49 @@ export default async function Home() {
   return (
     <div className="mx-auto max-w-6xl px-4">
       {/* Hero */}
-      <section className="py-14 sm:py-20">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted">
-          <MapPin className="h-3.5 w-3.5 text-brand" />
-          AI-powered civic platform · Delhi
-        </div>
-        <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          Delhi&rsquo;s civic issues, reported by citizens and{" "}
-          <span className="text-brand">resolved with AI</span>.
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-muted">
-          Snap a pothole, leak, broken light or garbage. An AI agent pipeline triages it,
-          routes it to the right authority, tracks it, and verifies the fix — while the
-          community confirms and a dashboard predicts where problems will strike next.
-        </p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <LinkButton href="/report" className="px-5 py-2.5 text-base">
-            <Camera className="h-5 w-5" />
-            Report an issue
-          </LinkButton>
-          <LinkButton href="/map" variant="secondary" className="px-5 py-2.5 text-base">
-            Explore the map
-          </LinkButton>
+      <section className="py-12 sm:py-16">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted">
+              <MapPin className="h-3.5 w-3.5 text-brand" />
+              AI-powered civic platform · Delhi
+            </div>
+            <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+              Delhi&rsquo;s civic issues, reported by citizens and{" "}
+              <span className="text-brand">resolved with AI</span>.
+            </h1>
+            <p className="mt-4 max-w-xl text-lg text-muted">
+              Snap a pothole, leak, broken light or garbage. An AI agent pipeline
+              triages it, routes it to the right authority, tracks it, and verifies the
+              fix — while the community confirms and a dashboard predicts where problems
+              strike next.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <LinkButton href="/report" className="px-5 py-2.5 text-base">
+                <Camera className="h-5 w-5" />
+                Report an issue
+              </LinkButton>
+              <LinkButton href="/map" variant="secondary" className="px-5 py-2.5 text-base">
+                Explore the map
+              </LinkButton>
+            </div>
+          </div>
+
+          {/* Delhi issue map */}
+          <div className="order-first lg:order-last">
+            <Image
+              src="/delhi_vector_map.png"
+              alt="Map of reported civic issues across Delhi"
+              width={1536}
+              height={1024}
+              priority
+              className="h-auto w-full"
+            />
+          </div>
         </div>
 
         {/* Live stats */}
-        <div className="mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {statCards.map((s) => (
             <div key={s.label} className="rounded-lg border border-border p-4">
               <div className="text-2xl font-semibold">{s.value}</div>

@@ -12,11 +12,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CONFIRMATIONS_TO_VERIFY } from "@/lib/domain";
-import { getIdentity } from "@/lib/client/identity";
+import { useAuth } from "@/components/auth-provider";
 import { fileToCompressedDataUrl } from "@/lib/client/image";
 import type { Issue, VerificationResult } from "@/lib/types";
 
 export function IssueActions({ issue: initial }: { issue: Issue }) {
+  const { user, authedFetch } = useAuth();
   const [issue, setIssue] = useState<Issue>(initial);
   const [busy, setBusy] = useState<null | "confirm" | "progress" | "resolve">(null);
   const [error, setError] = useState("");
@@ -31,11 +32,10 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
     setError("");
     setInfo("");
     try {
-      const id = getIdentity();
-      const r = await fetch(`/api/issues/${issue.id}/confirm`, {
+      const r = await authedFetch(`/api/issues/${issue.id}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: id.uid, name: id.name }),
+        body: JSON.stringify({ name: user?.displayName }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
@@ -69,15 +69,13 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
     setVerification(null);
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
-      const id = getIdentity();
-      const r = await fetch(`/api/issues/${issue.id}/resolve`, {
+      const r = await authedFetch(`/api/issues/${issue.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageBase64: dataUrl,
           mimeType: "image/jpeg",
-          uid: id.uid,
-          name: id.name,
+          name: user?.displayName,
         }),
       });
       const d = await r.json();

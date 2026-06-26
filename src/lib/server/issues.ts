@@ -69,6 +69,17 @@ export async function listIssues(limit = 200): Promise<Issue[]> {
   return snap.docs.map((doc) => docToIssue(doc.id, doc.data()));
 }
 
+export async function listIssuesByReporter(uid: string, limit = 100): Promise<Issue[]> {
+  const snap = await db
+    .collection(ISSUES)
+    .where("reporterId", "==", uid)
+    .limit(limit)
+    .get();
+  return snap.docs
+    .map((doc) => docToIssue(doc.id, doc.data()))
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export async function getIssue(id: string): Promise<Issue | null> {
   const doc = await db.collection(ISSUES).doc(id).get();
   return doc.exists ? docToIssue(doc.id, doc.data()!) : null;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createIssue, listIssues } from "@/lib/server/issues";
 import { awardPoints } from "@/lib/server/users";
+import { getUserFromRequest } from "@/lib/server/auth";
 import type { NewIssueInput } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -31,9 +32,13 @@ export async function POST(req: Request) {
     );
   }
 
+  const authed = await getUserFromRequest(req);
+  const reporterId = authed?.uid ?? body.reporterId;
+  const reporterName = body.reporterName ?? authed?.name;
+
   try {
-    const issue = await createIssue(body);
-    await awardPoints(body.reporterId, body.reporterName, "report");
+    const issue = await createIssue({ ...body, reporterId });
+    await awardPoints(reporterId, reporterName, "report");
     return NextResponse.json({ issue }, { status: 201 });
   } catch (err) {
     console.error("create issue failed", err);

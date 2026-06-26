@@ -86,6 +86,7 @@ export interface Insights {
 export interface LeaderUser {
   uid: string;
   displayName: string;
+  photoURL?: string;
   points: number;
   reportCount: number;
   confirmCount: number;

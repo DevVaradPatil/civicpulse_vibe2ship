@@ -32,21 +32,40 @@ export async function awardPoints(
   );
 }
 
+function toUser(id: string, x: FirebaseFirestore.DocumentData): LeaderUser {
+  return {
+    uid: id,
+    displayName: x.displayName ?? "Anonymous",
+    photoURL: x.photoURL ?? undefined,
+    points: x.points ?? 0,
+    reportCount: x.reportCount ?? 0,
+    confirmCount: x.confirmCount ?? 0,
+    resolveCount: x.resolveCount ?? 0,
+  };
+}
+
 export async function getLeaderboard(limit = 20): Promise<LeaderUser[]> {
   const snap = await db
     .collection(USERS)
     .orderBy("points", "desc")
     .limit(limit)
     .get();
-  return snap.docs.map((d) => {
-    const x = d.data();
-    return {
-      uid: d.id,
-      displayName: x.displayName ?? "Anonymous",
-      points: x.points ?? 0,
-      reportCount: x.reportCount ?? 0,
-      confirmCount: x.confirmCount ?? 0,
-      resolveCount: x.resolveCount ?? 0,
-    };
-  });
+  return snap.docs.map((d) => toUser(d.id, d.data()));
+}
+
+export async function getUser(uid: string): Promise<LeaderUser | null> {
+  const doc = await db.collection(USERS).doc(uid).get();
+  return doc.exists ? toUser(doc.id, doc.data()!) : null;
+}
+
+/** Upserts a profile's display name / photo without disturbing points. */
+export async function ensureProfile(
+  uid: string,
+  displayName?: string | null,
+  photoURL?: string | null,
+): Promise<void> {
+  const data: FirebaseFirestore.DocumentData = { updatedAt: Date.now() };
+  if (displayName) data.displayName = displayName.slice(0, 40);
+  if (photoURL) data.photoURL = photoURL;
+  await db.collection(USERS).doc(uid).set(data, { merge: true });
 }

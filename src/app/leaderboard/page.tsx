@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Trophy, Loader2, Camera, ThumbsUp, ShieldCheck } from "lucide-react";
+import { tierFor } from "@/lib/badges";
 import type { LeaderUser } from "@/lib/types";
 
 export default function LeaderboardPage() {
@@ -39,9 +41,10 @@ export default function LeaderboardPage() {
           </div>
         ) : (
           users.map((u, i) => (
-            <div
+            <Link
               key={u.uid}
-              className="flex items-center gap-3 rounded-lg border border-border p-3"
+              href={`/u/${u.uid}`}
+              className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-surface"
             >
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
@@ -50,9 +53,18 @@ export default function LeaderboardPage() {
               >
                 {i + 1}
               </span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-sm font-medium">
+                {u.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={u.photoURL} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  (u.displayName || "U").charAt(0).toUpperCase()
+                )}
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{u.displayName}</p>
-                <div className="mt-0.5 flex flex-wrap gap-3 text-xs text-muted">
+                <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted">
+                  <span className="font-medium text-brand">{tierFor(u.points).name}</span>
                   <span className="flex items-center gap-1">
                     <Camera className="h-3.5 w-3.5" /> {u.reportCount}
                   </span>
@@ -65,7 +77,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <span className="shrink-0 text-lg font-semibold">{u.points}</span>
-            </div>
+            </Link>
           ))
         )}
       </div>
