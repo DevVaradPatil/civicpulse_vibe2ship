@@ -9,7 +9,7 @@ export function IssueCard({ issue }: { issue: Issue }) {
   return (
     <Link
       href={`/issue/${issue.id}`}
-      className="flex gap-3 rounded-lg border border-border p-3 hover:bg-surface"
+      className="flex min-w-0 gap-3 rounded-lg border border-border p-3 hover:bg-surface"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -18,11 +18,11 @@ export function IssueCard({ issue }: { issue: Issue }) {
         className="h-16 w-16 shrink-0 rounded-md border border-border object-cover"
       />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 text-xs text-muted">
-          <CategoryIcon category={issue.category} className="h-3.5 w-3.5" />
-          {CATEGORIES[issue.category].label}
-          <span>·</span>
-          {timeAgo(issue.createdAt)}
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+          <CategoryIcon category={issue.category} className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{CATEGORIES[issue.category].label}</span>
+          <span className="shrink-0">·</span>
+          <span className="shrink-0">{timeAgo(issue.createdAt)}</span>
         </div>
         <p className="mt-0.5 truncate font-medium">{issue.title}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">

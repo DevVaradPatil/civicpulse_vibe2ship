@@ -18,11 +18,56 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://civicpulse-245651121772.us-central1.run.app";
+const DESCRIPTION =
+  "CivicPulse is an AI-powered hyperlocal civic platform for Delhi. Report potholes, water leaks, broken streetlights and waste with a photo — a multi-agent AI pipeline triages it, routes it to the right authority, the community verifies it, and AI confirms the fix.";
+
 export const metadata: Metadata = {
-  title: "CivicPulse — Report. Track. Resolve.",
-  description:
-    "CivicPulse is a hyperlocal civic issue platform. Report potholes, leaks, broken streetlights and waste with a photo — AI triages, the community verifies, and you track it to resolution.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "CivicPulse — Report, track & resolve civic issues with AI",
+    template: "%s · CivicPulse",
+  },
+  description: DESCRIPTION,
   applicationName: "CivicPulse",
+  manifest: "/manifest.webmanifest",
+  keywords: [
+    "civic issues",
+    "Delhi",
+    "pothole reporting",
+    "civic tech",
+    "AI",
+    "Gemini",
+    "community",
+    "smart city",
+    "public infrastructure",
+    "complaint",
+  ],
+  authors: [{ name: "CivicPulse" }],
+  creator: "CivicPulse",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "CivicPulse",
+    title: "CivicPulse — Report, track & resolve civic issues with AI",
+    description: DESCRIPTION,
+    images: [
+      {
+        url: "/delhi_vector_map.png",
+        width: 1536,
+        height: 1024,
+        alt: "Map of reported civic issues across Delhi",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CivicPulse — Report, track & resolve civic issues with AI",
+    description: DESCRIPTION,
+    images: ["/delhi_vector_map.png"],
+  },
 };
 
 export const viewport: Viewport = {
