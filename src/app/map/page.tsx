@@ -126,8 +126,8 @@ export default function MapPage() {
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="relative h-[60vh] overflow-hidden rounded-lg border border-border lg:h-[72vh]">
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="relative h-[60vh] min-w-0 overflow-hidden rounded-lg border border-border lg:h-[72vh]">
           {map}
           {/* Legend */}
           <div className="absolute bottom-3 left-3 z-[1000] rounded-lg border border-border bg-bg/90 p-2.5 text-xs backdrop-blur">
@@ -150,7 +150,7 @@ export default function MapPage() {
           </div>
         </div>
 
-        <div className="space-y-2 lg:max-h-[72vh] lg:overflow-y-auto">
+        <div className="min-w-0 space-y-2 lg:max-h-[72vh] lg:overflow-y-auto">
           {issues === null ? (
             [0, 1, 2, 3].map((i) => (
               <div key={i} className="h-24 animate-pulse rounded-lg border border-border bg-surface" />

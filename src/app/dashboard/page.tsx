@@ -66,7 +66,7 @@ export default function DashboardPage() {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="h-7 w-48 animate-pulse rounded bg-surface" />
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-surface" />
           ))}
@@ -95,7 +95,7 @@ export default function DashboardPage() {
       <p className="text-sm text-muted">Civic-issue health across Delhi.</p>
 
       {/* Stat cards */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={<ListChecks className="h-5 w-5" />} label="Total reports" value={String(stats.total)} accent="bg-brand/10 text-brand" />
         <StatCard icon={<CheckCircle2 className="h-5 w-5" />} label="Resolved" value={`${Math.round(stats.resolutionRate * 100)}%`} sub={`${stats.resolved} of ${stats.total}`} accent="bg-status-resolved/10 text-status-resolved" />
         <StatCard icon={<CircleDot className="h-5 w-5" />} label="Open" value={String(open)} accent="bg-status-progress/10 text-status-progress" />

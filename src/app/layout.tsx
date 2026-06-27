@@ -45,7 +45,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-full flex flex-col bg-bg text-fg">
+      <body className="min-h-full flex flex-col overflow-x-hidden bg-bg text-fg">
         <AuthProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>

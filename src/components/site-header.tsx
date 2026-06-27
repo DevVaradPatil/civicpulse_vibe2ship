@@ -14,11 +14,11 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-brand-fg">
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand text-brand-fg">
             <Activity className="h-4 w-4" strokeWidth={2.5} />
           </span>
-          <span>CivicPulse</span>
+          <span className="hidden min-[380px]:inline">CivicPulse</span>
         </Link>
 
         <nav className="flex items-center gap-0.5 sm:gap-1">
