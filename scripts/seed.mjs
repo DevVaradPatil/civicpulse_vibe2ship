@@ -1,10 +1,22 @@
-// Seeds a realistic Delhi demo dataset (~30 issues). Usage: node scripts/seed.mjs
+// Seeds a realistic Delhi demo dataset (~30 issues) with category-matched
+// before/after photos.
+//
+//   node scripts/seed.mjs            → refresh demo data
+//   node scripts/seed.mjs --dry-run  → show what would change, touch nothing
+//
+// SAFETY: this script is NON-DESTRUCTIVE to real data. It only ever deletes
+// documents it created itself (issues whose reporterId starts with "seed-", and
+// user docs whose id starts with "seed-"). Real reports, real users, and their
+// points are always preserved.
+//
 // Requires ADC (`gcloud auth application-default login`) and scripts/seed-img/*.jpg.
 import { readFileSync } from "node:fs";
 import { initializeApp, applicationDefault, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { Storage } from "@google-cloud/storage";
 import { geohashForLocation } from "geofire-common";
+
+const DRY_RUN = process.argv.includes("--dry-run");
 
 const projectId = process.env.FIREBASE_PROJECT_ID || "civicpulse-v2s-01";
 const bucketName = process.env.GCS_BUCKET || "civicpulse-v2s-01-media";
@@ -14,6 +26,7 @@ const bucket = new Storage().bucket(bucketName);
 
 const img = (name) => readFileSync(new URL(`./seed-img/${name}.jpg`, import.meta.url));
 async function upload(path, name) {
+  if (DRY_RUN) return;
   await bucket.file(path).save(img(name), {
     contentType: "image/jpeg",
     resumable: false,
@@ -28,6 +41,8 @@ const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 const int = (a, b) => a + Math.floor(rand() * (b - a + 1));
 
 const DAY = 86_400_000;
+const SEED_PREFIX = "seed-";
+const isSeedId = (v) => typeof v === "string" && v.startsWith(SEED_PREFIX);
 
 const AREAS = [
   ["Connaught Place", 28.6315, 77.2167, 4],
@@ -70,17 +85,42 @@ const USERS = [
   ["seed-dev", "Dev Patil"],
 ];
 
-async function main() {
-  for (const col of ["issues", "users", "meta"]) {
-    const snap = await db.collection(col).get();
-    const b = db.batch();
-    snap.docs.forEach((d) => b.delete(d.ref));
-    await b.commit();
+/** Deletes ONLY seed-created docs. Never touches real reports or users. */
+async function purgeSeedData() {
+  const issueSnap = await db.collection("issues").get();
+  const seedIssues = issueSnap.docs.filter(
+    (d) => d.data().seed === true || isSeedId(d.data().reporterId),
+  );
+  const userSnap = await db.collection("users").get();
+  const seedUsers = userSnap.docs.filter((d) => isSeedId(d.id));
+
+  const keptIssues = issueSnap.size - seedIssues.length;
+  const keptUsers = userSnap.size - seedUsers.length;
+  console.log(`  issues: ${seedIssues.length} seed → delete | ${keptIssues} real → PRESERVED`);
+  console.log(`  users : ${seedUsers.length} seed → delete | ${keptUsers} real → PRESERVED`);
+  for (const d of userSnap.docs.filter((d) => !isSeedId(d.id))) {
+    console.log(`    preserving user: ${d.data().displayName ?? "?"} (${d.id.slice(0, 10)}…)`);
   }
 
-  const tally = Object.fromEntries(
-    USERS.map((u) => [u[0], { report: 0, confirm: 0, resolve: 0 }]),
-  );
+  if (DRY_RUN) return;
+
+  const batch = db.batch();
+  seedIssues.forEach((d) => batch.delete(d.ref));
+  seedUsers.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+  // Insights are a cache; drop so they regenerate against the fresh data.
+  await db.collection("meta").doc("insights").delete().catch(() => {});
+}
+
+async function main() {
+  console.log(DRY_RUN ? "DRY RUN — nothing will be written\n" : "Seeding…\n");
+  await purgeSeedData();
+  if (DRY_RUN) {
+    console.log("\nDry run complete. Re-run without --dry-run to apply.");
+    process.exit(0);
+  }
+
+  const tally = Object.fromEntries(USERS.map((u) => [u[0], { report: 0, resolve: 0 }]));
   let n = 0;
   let userIdx = 0;
 
@@ -104,6 +144,7 @@ async function main() {
       await upload(photoPath, category);
 
       const doc = {
+        seed: true,
         title,
         description: `${title}. Reported by a resident; needs attention from the local authority.`,
         category,
@@ -124,7 +165,8 @@ async function main() {
 
       if (status === "resolved") {
         const proofPath = `resolutions/seed-${n}.jpg`;
-        await upload(proofPath, "fixed");
+        // Category-matched "after" photo so the before/after slider makes sense.
+        await upload(proofPath, `fixed_${category}`);
         doc.resolution = {
           proofPath,
           verified: true,
@@ -137,7 +179,6 @@ async function main() {
     }
   }
 
-  // Users with points derived from their activity + some community confirms.
   for (const [uid, displayName] of USERS) {
     const t = tally[uid];
     const confirmCount = int(2, 9);
@@ -152,7 +193,7 @@ async function main() {
     });
   }
 
-  console.log(`Seeded ${n} issues and ${USERS.length} users.`);
+  console.log(`\nSeeded ${n} issues and ${USERS.length} demo users. Real data untouched.`);
   process.exit(0);
 }
 main();
