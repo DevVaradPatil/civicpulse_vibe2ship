@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
   ThumbsUp,
@@ -9,6 +9,7 @@ import {
   Upload,
   ShieldCheck,
   ShieldX,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CONFIRMATIONS_TO_VERIFY } from "@/lib/domain";
@@ -22,9 +23,15 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
   const [issue, setIssue] = useState<Issue>(initial);
   const [busy, setBusy] = useState<null | "confirm" | "progress" | "resolve">(null);
   const [verification, setVerification] = useState<VerificationResult | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   const proofRef = useRef<HTMLInputElement>(null);
 
   const remaining = Math.max(0, CONFIRMATIONS_TO_VERIFY - issue.confirmations);
+
+  // Reflect whether the current user has already confirmed this issue.
+  useEffect(() => {
+    if (user?.uid && issue.confirmedBy?.includes(user.uid)) setConfirmed(true);
+  }, [user, issue.confirmedBy]);
 
   async function confirm() {
     setBusy("confirm");
@@ -37,6 +44,7 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setIssue(d.issue);
+      setConfirmed(true);
       if (d.counted) {
         toast.success(
           d.issue.status === "verified"
@@ -107,19 +115,26 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
       {/* Confirm */}
       {!isResolved && (
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={confirm} disabled={busy !== null}>
-            {busy === "confirm" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ThumbsUp className="h-4 w-4" />
-            )}
-            Confirm ({issue.confirmations})
-          </Button>
+          {confirmed ? (
+            <span className="inline-flex items-center gap-2 rounded-lg bg-status-resolved/10 px-4 py-2 text-sm font-medium text-status-resolved">
+              <CheckCircle2 className="h-4 w-4" /> Confirmed by you
+            </span>
+          ) : (
+            <Button onClick={confirm} disabled={busy !== null}>
+              {busy === "confirm" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ThumbsUp className="h-4 w-4" />
+              )}
+              Confirm ({issue.confirmations})
+            </Button>
+          )}
           {issue.status === "reported" && (
             <span className="text-sm text-muted">
+              {issue.confirmations} confirmed
               {remaining > 0
-                ? `${remaining} more confirmation${remaining === 1 ? "" : "s"} to verify`
-                : "Ready to verify"}
+                ? ` · ${remaining} more to verify`
+                : " · ready to verify"}
             </span>
           )}
           {issue.status === "verified" && (

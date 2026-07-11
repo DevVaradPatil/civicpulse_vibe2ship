@@ -24,6 +24,7 @@ function docToIssue(id: string, d: FirebaseFirestore.DocumentData): Issue {
     geohash: d.geohash,
     photoPath: d.photoPath,
     confirmations: d.confirmations ?? 0,
+    confirmedBy: d.confirmedBy ?? [],
     reporterId: d.reporterId,
     aiConfidence: d.aiConfidence,
     resolution: d.resolution,

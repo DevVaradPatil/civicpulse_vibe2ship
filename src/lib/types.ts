@@ -50,6 +50,7 @@ export interface Issue {
   /** GCS object path, served via /api/media/<photoPath> */
   photoPath: string;
   confirmations: number;
+  confirmedBy?: string[];
   reporterId?: string;
   aiConfidence?: number;
   resolution?: Resolution;
