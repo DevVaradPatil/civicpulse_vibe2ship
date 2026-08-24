@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Activity, Map, Plus, LayoutDashboard, Trophy } from "lucide-react";
+import { Activity, Map, Plus, LayoutDashboard, Trophy, User } from "lucide-react";
 import { LinkButton } from "@/components/ui/button";
-import { AuthButton } from "@/components/auth-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
@@ -38,7 +37,13 @@ export function SiteHeader() {
             <span className="hidden sm:inline">Report</span>
           </LinkButton>
           <ThemeToggle />
-          <AuthButton />
+          <Link
+            href="/profile"
+            title="My profile"
+            className="inline-flex items-center rounded-lg px-2.5 py-2 text-sm text-muted hover:bg-surface hover:text-fg"
+          >
+            <User className="h-4 w-4" />
+          </Link>
         </nav>
       </div>
     </header>

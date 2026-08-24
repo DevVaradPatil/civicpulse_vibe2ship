@@ -1,6 +1,5 @@
 import "server-only";
-import { getAuth } from "firebase-admin/auth";
-import "@/lib/server/firebase-admin"; // ensures admin app is initialized
+import { supabaseAdmin } from "@/lib/server/supabase";
 
 export interface AuthedUser {
   uid: string;
@@ -8,14 +7,20 @@ export interface AuthedUser {
   picture?: string;
 }
 
-/** Verifies the Firebase ID token from the Authorization header. Returns null if absent/invalid. */
+/** Verifies the Supabase access token from the Authorization header. Null if absent/invalid. */
 export async function getUserFromRequest(req: Request): Promise<AuthedUser | null> {
   const header = req.headers.get("authorization") || "";
   const match = header.match(/^Bearer (.+)$/);
   if (!match) return null;
   try {
-    const decoded = await getAuth().verifyIdToken(match[1]);
-    return { uid: decoded.uid, name: decoded.name, picture: decoded.picture };
+    const { data, error } = await supabaseAdmin.auth.getUser(match[1]);
+    if (error || !data.user) return null;
+    const meta = data.user.user_metadata ?? {};
+    return {
+      uid: data.user.id,
+      name: (meta.full_name as string) || (meta.name as string) || undefined,
+      picture: (meta.avatar_url as string) || undefined,
+    };
   } catch {
     return null;
   }

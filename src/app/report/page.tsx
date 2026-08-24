@@ -22,7 +22,7 @@ import { useAuth } from "@/components/auth-provider";
 type Phase = "idle" | "analyzing" | "review" | "submitting" | "done";
 
 export default function ReportPage() {
-  const { user, authedFetch } = useAuth();
+  const { displayName, saveDisplayName, authedFetch } = useAuth();
   const cameraRef = useRef<HTMLInputElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [categoryHint, setCategoryHint] = useState<IssueCategory | "">("");
@@ -37,8 +37,8 @@ export default function ReportPage() {
   const [reporter, setReporter] = useState<string>("");
 
   useEffect(() => {
-    if (user?.displayName) setReporter(user.displayName);
-  }, [user]);
+    if (displayName) setReporter(displayName);
+  }, [displayName]);
 
   async function captureLocation() {
     setLocating(true);
@@ -89,6 +89,7 @@ export default function ReportPage() {
     if (!triage || !coords) return;
     setPhase("submitting");
     setError("");
+    if (reporter && reporter !== displayName) await saveDisplayName(reporter);
     try {
       const res = await authedFetch("/api/issues", {
         method: "POST",
@@ -99,7 +100,7 @@ export default function ReportPage() {
           lat: coords.lat,
           lng: coords.lng,
           triage: { ...triage, category },
-          reporterName: reporter || user?.displayName || undefined,
+          reporterName: reporter || displayName || undefined,
         }),
       });
       const data = await res.json();

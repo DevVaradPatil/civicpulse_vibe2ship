@@ -9,29 +9,30 @@
 // user docs whose id starts with "seed-"). Real reports, real users, and their
 // points are always preserved.
 //
-// Requires ADC (`gcloud auth application-default login`) and scripts/seed-img/*.jpg.
+// Run with: node --env-file=.env.local scripts/seed.mjs   (needs scripts/seed-img/*.jpg)
 import { readFileSync } from "node:fs";
-import { initializeApp, applicationDefault, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { Storage } from "@google-cloud/storage";
+import { createClient } from "@supabase/supabase-js";
 import { geohashForLocation } from "geofire-common";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
-const projectId = process.env.FIREBASE_PROJECT_ID || "civicpulse-v2s-01";
-const bucketName = process.env.GCS_BUCKET || "civicpulse-v2s-01-media";
-if (!getApps().length) initializeApp({ credential: applicationDefault(), projectId });
-const db = getFirestore();
-const bucket = new Storage().bucket(bucketName);
+const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BUCKET = process.env.SUPABASE_BUCKET || "media";
+if (!url || !key) {
+  console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.");
+  console.error("Run with:  node --env-file=.env.local scripts/seed.mjs");
+  process.exit(1);
+}
+const db = createClient(url, key, { auth: { persistSession: false } });
 
 const img = (name) => readFileSync(new URL(`./seed-img/${name}.jpg`, import.meta.url));
 async function upload(path, name) {
   if (DRY_RUN) return;
-  await bucket.file(path).save(img(name), {
-    contentType: "image/jpeg",
-    resumable: false,
-    metadata: { cacheControl: "public, max-age=31536000, immutable" },
-  });
+  const { error } = await db.storage
+    .from(BUCKET)
+    .upload(path, img(name), { contentType: "image/jpeg", upsert: true, cacheControl: "31536000" });
+  if (error) throw new Error("upload " + path + " failed: " + error.message);
 }
 
 // Deterministic RNG for reproducible demo data.
@@ -87,29 +88,29 @@ const USERS = [
 
 /** Deletes ONLY seed-created docs. Never touches real reports or users. */
 async function purgeSeedData() {
-  const issueSnap = await db.collection("issues").get();
-  const seedIssues = issueSnap.docs.filter(
-    (d) => d.data().seed === true || isSeedId(d.data().reporterId),
-  );
-  const userSnap = await db.collection("users").get();
-  const seedUsers = userSnap.docs.filter((d) => isSeedId(d.id));
+  const { data: issues } = await db.from("issues").select("id, seed, reporter_id");
+  const { data: users } = await db.from("users").select("uid, display_name");
+  const allIssues = issues ?? [];
+  const allUsers = users ?? [];
 
-  const keptIssues = issueSnap.size - seedIssues.length;
-  const keptUsers = userSnap.size - seedUsers.length;
-  console.log(`  issues: ${seedIssues.length} seed → delete | ${keptIssues} real → PRESERVED`);
-  console.log(`  users : ${seedUsers.length} seed → delete | ${keptUsers} real → PRESERVED`);
-  for (const d of userSnap.docs.filter((d) => !isSeedId(d.id))) {
-    console.log(`    preserving user: ${d.data().displayName ?? "?"} (${d.id.slice(0, 10)}…)`);
+  const seedIssues = allIssues.filter((r) => r.seed === true || isSeedId(r.reporter_id));
+  const seedUsers = allUsers.filter((r) => isSeedId(r.uid));
+
+  console.log("  issues: " + seedIssues.length + " seed -> delete | " + (allIssues.length - seedIssues.length) + " real -> PRESERVED");
+  console.log("  users : " + seedUsers.length + " seed -> delete | " + (allUsers.length - seedUsers.length) + " real -> PRESERVED");
+  for (const u of allUsers.filter((r) => !isSeedId(r.uid))) {
+    console.log("    preserving user: " + (u.display_name ?? "?") + " (" + String(u.uid).slice(0, 10) + ")");
   }
 
   if (DRY_RUN) return;
 
-  const batch = db.batch();
-  seedIssues.forEach((d) => batch.delete(d.ref));
-  seedUsers.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
-  // Insights are a cache; drop so they regenerate against the fresh data.
-  await db.collection("meta").doc("insights").delete().catch(() => {});
+  if (seedIssues.length) {
+    await db.from("issues").delete().in("id", seedIssues.map((r) => r.id));
+  }
+  if (seedUsers.length) {
+    await db.from("users").delete().in("uid", seedUsers.map((r) => r.uid));
+  }
+  await db.from("meta").delete().eq("key", "insights");
 }
 
 async function main() {
@@ -154,13 +155,14 @@ async function main() {
         lat,
         lng,
         geohash: geohashForLocation([lat, lng]),
-        photoPath,
+        photo_path: photoPath,
         confirmations,
-        reporterId: reporter[0],
-        reporterName: reporter[1],
-        aiConfidence: 0.85 + rand() * 0.13,
-        createdAt,
-        updatedAt: createdAt,
+        confirmed_by: [],
+        reporter_id: reporter[0],
+        reporter_name: reporter[1],
+        ai_confidence: 0.85 + rand() * 0.13,
+        created_at: createdAt,
+        updated_at: createdAt,
       };
 
       if (status === "resolved") {
@@ -175,7 +177,8 @@ async function main() {
         };
         tally[reporter[0]].resolve++;
       }
-      await db.collection("issues").add(doc);
+      const { error: insErr } = await db.from("issues").insert(doc);
+      if (insErr) throw new Error("insert failed: " + insErr.message);
     }
   }
 
@@ -183,14 +186,15 @@ async function main() {
     const t = tally[uid];
     const confirmCount = int(2, 9);
     const points = t.report * 10 + confirmCount * 5 + t.resolve * 20;
-    await db.collection("users").doc(uid).set({
-      displayName,
+    await db.from("users").upsert({
+      uid,
+      display_name: displayName,
       points,
-      reportCount: t.report,
-      confirmCount,
-      resolveCount: t.resolve,
-      updatedAt: Date.now(),
-    });
+      report_count: t.report,
+      confirm_count: confirmCount,
+      resolve_count: t.resolve,
+      updated_at: Date.now(),
+    }, { onConflict: "uid" });
   }
 
   console.log(`\nSeeded ${n} issues and ${USERS.length} demo users. Real data untouched.`);

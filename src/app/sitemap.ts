@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = "https://civicpulse-245651121772.us-central1.run.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = ["", "/report", "/map", "/dashboard", "/leaderboard"];

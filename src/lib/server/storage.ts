@@ -1,14 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { Storage } from "@google-cloud/storage";
+import { supabaseAdmin, BUCKET } from "@/lib/server/supabase";
 
-const BUCKET = process.env.GCS_BUCKET || "civicpulse-v2s-01-media";
-
-// ADC-based auth (same as firebase-admin).
-const storage = new Storage();
-const bucket = storage.bucket(BUCKET);
-
-/** Uploads an image buffer and returns its GCS object path (kept private; served via /api/media). */
+/** Uploads an image and returns its object path (kept private; served via /api/media). */
 export async function uploadImage(
   buffer: Buffer,
   contentType: string,
@@ -16,17 +10,21 @@ export async function uploadImage(
 ): Promise<string> {
   const ext = contentType.includes("png") ? "png" : "jpg";
   const objectPath = `${prefix}/${Date.now()}-${randomUUID()}.${ext}`;
-  await bucket.file(objectPath).save(buffer, {
-    contentType,
-    resumable: false,
-    metadata: { cacheControl: "public, max-age=31536000, immutable" },
-  });
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(objectPath, buffer, { contentType, upsert: true, cacheControl: "31536000" });
+  if (error) throw new Error(`upload failed: ${error.message}`);
   return objectPath;
 }
 
-/** Streams a stored object (used by the /api/media proxy so the bucket stays private). */
-export function getFile(objectPath: string) {
-  return bucket.file(objectPath);
+/** Downloads a stored object (used by the /api/media proxy so the bucket stays private). */
+export async function downloadFile(
+  objectPath: string,
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const { data, error } = await supabaseAdmin.storage.from(BUCKET).download(objectPath);
+  if (error || !data) return null;
+  const buffer = Buffer.from(await data.arrayBuffer());
+  return { buffer, contentType: data.type || "image/jpeg" };
 }
 
 /** Decodes a data URL or bare base64 string into a Buffer + mime type. */

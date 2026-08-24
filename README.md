@@ -6,7 +6,7 @@
 
 **Built for the Vibe2Ship hackathon · Problem Statement 2: Community Hero — Hyperlocal Problem Solver**
 
-- 🌐 **Live app:** https://civicpulse-245651121772.us-central1.run.app
+- 🌐 **Live app:** deployed on Vercel — see [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md)
 - 📦 **Repo:** https://github.com/DevVaradPatil/civicpulse_vibe2ship
 - 🗺️ **Demo scope:** Delhi
 
@@ -50,7 +50,7 @@ true *agentic* system that stays fast and within free tiers.
   **before/after slider**, AI-drafted authority complaint.
 - **Impact dashboard** — colored stat cards, status donut, 7-day trend chart, category/severity
   breakdowns, predicted hotspots, and a floating **AI insights** widget (auto-runs, cached).
-- **Community heroes** — **Firebase Auth** (Google + anonymous), public profiles (`/u/[uid]`),
+- **Community heroes** — **Supabase anonymous auth**, public profiles (`/u/[uid]`),
   tiers (Civic Rookie → Community Hero), achievement badges, points, and a podium leaderboard.
 - **Polished UX** — flat minimal design (no gradients), **dark mode**, toast notifications,
   mobile-friendly, loading skeletons.
@@ -59,61 +59,46 @@ true *agentic* system that stays fast and within free tiers.
 
 | Layer | Choice |
 |---|---|
-| App | **Next.js 16** (App Router) + React 19 + TypeScript — one full-stack container |
+| App | **Next.js 16** (App Router) + React 19 + TypeScript — full-stack, no separate backend |
 | Styling | **Tailwind v4** (CSS `@theme` tokens), lucide-react, react-hot-toast |
 | AI | **Gemini `2.5-flash`** via Google AI Studio (server-side only) |
-| Auth | **Firebase Authentication** (Google + Anonymous), server-verified ID tokens |
-| Data | **Cloud Firestore** (Firebase Admin SDK, server-side) |
-| Storage | **Google Cloud Storage** (private bucket, served via a media proxy) |
+| Auth | **Supabase Auth** (anonymous), server-verified access tokens |
+| Data | **Supabase Postgres** (service-role key, server-side only) |
+| Storage | **Supabase Storage** (private bucket, served via a media proxy) |
 | Maps | **Leaflet + OpenStreetMap** + leaflet.markercluster (no key, no billing); geofire-common |
-| Hosting | **Google Cloud Run** (single Docker container, built by Cloud Build) |
+| Hosting | **Vercel** (Next.js native, free Hobby tier) |
 
 Everything runs within **free / Always-Free tiers**.
 
 ## Architecture
 
 ```
-[ Next.js app on Cloud Run ]   client components + server route handlers
+[ Next.js app on Vercel ]   client components + server route handlers
       │
       ├── Gemini API        Triage · Routing · Verifier · Insights  (server-side only)
-      ├── Firebase Admin →  Firestore (issues, users, cached insights)
-      ├── Firebase Auth     ID-token verification (report / confirm / resolve)
-      ├── Cloud Storage     issue + proof photos (private, via /api/media)
+      ├── Supabase Postgres issues, users, cached insights
+      ├── Supabase Auth     anonymous sign-in + token verification
+      ├── Supabase Storage  issue + proof photos (private, via /api/media)
       └── Leaflet + OSM     map tiles + clustering
 ```
 
 ## Local development
 
-**Prerequisites:** Node 22+, a Gemini API key, a Firebase web config, and
-`gcloud auth application-default login` (for Firestore/GCS access).
+See **[DEPLOY-VERCEL.md](DEPLOY-VERCEL.md)** for the full setup (Supabase project, schema,
+storage bucket, anonymous auth, and Vercel deploy).
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in the values
-npm run dev                  # http://localhost:3000
-node scripts/seed.mjs        # seed a Delhi demo dataset (~30 issues)
+cp .env.example .env.local          # fill in Gemini + Supabase values
+npm run dev                         # http://localhost:3000
+node --env-file=.env.local scripts/seed.mjs   # ~30 Delhi demo issues
 ```
-
-Env vars (see `.env.example`): `GEMINI_API_KEY`, `GCS_BUCKET`, `FIREBASE_PROJECT_ID`, and the
-public `FIREBASE_WEB_*` web config (served to the client at runtime via `/api/firebase-config`).
-
-## Deploy (Google Cloud Run)
-
-```bash
-PROJECT_ID=your-project ./deploy.sh
-# then set runtime env (incl. FIREBASE_WEB_*) via:
-#   gcloud run services update civicpulse --update-env-vars KEY=VALUE,...
-```
-
-> The Firebase web config is **not** baked into the image — it's served from server env at
-> runtime, so it stays out of the repo/bundle. Server secrets (`GEMINI_API_KEY`) are Cloud Run
-> runtime env vars.
 
 ## Scripts
 
 - `npm run dev` / `npm run build` / `npm run lint`
-- `node scripts/seed.mjs` — seed ~30 demo issues + users
-- `node scripts/reset-issues.mjs` — clear issues + users
+- `node --env-file=.env.local scripts/seed.mjs` — seed ~30 demo issues + users
+- `node --env-file=.env.local scripts/reset-issues.mjs` — clear seed data
 
 ## Project structure
 
@@ -121,13 +106,13 @@ PROJECT_ID=your-project ./deploy.sh
 src/
   app/                routes: /, /report, /map, /dashboard, /leaderboard, /profile, /u/[uid],
                       /issue/[id], and /api/* (triage, issues[+confirm/progress/resolve/complaint],
-                      dashboard, insights, leaderboard, me, users, media, firebase-config)
+                      dashboard, insights, leaderboard, me, users, media)
   components/         site-header, agent-pipeline, issue-*, before-after-slider, charts,
-                      insights-widget, profile-view, auth-*, theme-toggle, ui/*
+                      insights-widget, profile-view, auth-provider, theme-toggle, ui/*
   lib/
     agents/           triage, routing, verifier, insights  (Gemini agents)
-    server/           firebase-admin, issues, users, stats, insights, storage, gemini, auth
-    client/           firebase, image helpers
+    server/           supabase, issues, users, stats, insights, storage, gemini, auth
+    client/           supabase, image helpers
     domain.ts         categories / statuses / severity / Delhi config (source of truth)
     colors.ts         chart/marker color maps   ·   badges.ts  tiers + badges
 scripts/              seed + reset utilities

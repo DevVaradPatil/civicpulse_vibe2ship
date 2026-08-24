@@ -3,6 +3,13 @@
 Everything you need to defend the project in the final round. Skim the **Cheat-Sheet** first,
 then read the sections, then rehearse the **Anticipated Q&A** at the end.
 
+> **⚠️ Stack update (post-hackathon):** the app has been migrated off Google Cloud.
+> Hosting is now **Vercel**, and Firestore / Cloud Storage / Firebase Auth were replaced by
+> **Supabase** (Postgres / Storage / anonymous Auth). The **Gemini agents are unchanged** —
+> everything in §2 still applies. Where this document says Firestore, read Supabase Postgres;
+> Cloud Storage → Supabase Storage; Firebase Auth → Supabase anonymous auth; Cloud Run → Vercel.
+> See `DEPLOY-VERCEL.md`.
+
 - **Live:** https://civicpulse-245651121772.us-central1.run.app
 - **Repo:** https://github.com/DevVaradPatil/civicpulse_vibe2ship
 - **Problem statement:** PS-2 Community Hero — Hyperlocal Problem Solver (demo scope: Delhi)

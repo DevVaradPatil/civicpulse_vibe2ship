@@ -19,7 +19,7 @@ import { fileToCompressedDataUrl } from "@/lib/client/image";
 import type { Issue, VerificationResult } from "@/lib/types";
 
 export function IssueActions({ issue: initial }: { issue: Issue }) {
-  const { user, authedFetch } = useAuth();
+  const { uid, displayName, authedFetch } = useAuth();
   const [issue, setIssue] = useState<Issue>(initial);
   const [busy, setBusy] = useState<null | "confirm" | "progress" | "resolve">(null);
   const [verification, setVerification] = useState<VerificationResult | null>(null);
@@ -30,8 +30,8 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
 
   // Reflect whether the current user has already confirmed this issue.
   useEffect(() => {
-    if (user?.uid && issue.confirmedBy?.includes(user.uid)) setConfirmed(true);
-  }, [user, issue.confirmedBy]);
+    if (uid && issue.confirmedBy?.includes(uid)) setConfirmed(true);
+  }, [uid, issue.confirmedBy]);
 
   async function confirm() {
     setBusy("confirm");
@@ -39,7 +39,7 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
       const r = await authedFetch(`/api/issues/${issue.id}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: user?.displayName }),
+        body: JSON.stringify({ name: displayName }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
@@ -88,7 +88,7 @@ export function IssueActions({ issue: initial }: { issue: Issue }) {
         body: JSON.stringify({
           imageBase64: dataUrl,
           mimeType: "image/jpeg",
-          name: user?.displayName,
+          name: displayName,
         }),
       });
       const d = await r.json();

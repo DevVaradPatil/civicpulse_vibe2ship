@@ -1,8 +1,9 @@
-import { getFile } from "@/lib/server/storage";
+import { downloadFile } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
-// Streams issue/proof photos from the (private) GCS bucket so we never expose it publicly.
+// Streams issue/proof photos from the (private) Supabase Storage bucket so we
+// never expose it publicly.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ path: string[] }> },
@@ -16,15 +17,11 @@ export async function GET(
   }
 
   try {
-    const file = getFile(objectPath);
-    const [exists] = await file.exists();
-    if (!exists) return new Response("Not found", { status: 404 });
-
-    const [buffer] = await file.download();
-    const [meta] = await file.getMetadata();
-    return new Response(new Uint8Array(buffer), {
+    const file = await downloadFile(objectPath);
+    if (!file) return new Response("Not found", { status: 404 });
+    return new Response(new Uint8Array(file.buffer), {
       headers: {
-        "Content-Type": meta.contentType ?? "image/jpeg",
+        "Content-Type": file.contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });

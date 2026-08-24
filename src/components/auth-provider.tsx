@@ -7,21 +7,18 @@ import {
   useEffect,
   useState,
 } from "react";
-import {
-  onAuthStateChanged,
-  signInAnonymously,
-  signInWithPopup,
-  signOut,
-  type User,
-} from "firebase/auth";
-import { ensureFirebase, googleProvider } from "@/lib/client/firebase";
+import type { User } from "@supabase/supabase-js";
+import { getSupabase, supabaseConfigured } from "@/lib/client/supabase";
+
+const NAME_KEY = "cp_name";
 
 interface AuthCtx {
   user: User | null;
+  uid: string | null;
   loading: boolean;
-  isAnonymous: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOutUser: () => Promise<void>;
+  /** Display name shown on the leaderboard/profile (optional, user-chosen). */
+  displayName: string;
+  saveDisplayName: (name: string) => Promise<void>;
   authedFetch: (input: string, init?: RequestInit) => Promise<Response>;
 }
 
@@ -36,78 +33,80 @@ export function useAuth(): AuthCtx {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
-    ensureFirebase().then((auth) => {
-      // No Firebase config → run without auth instead of crashing.
-      if (!auth) {
+    setDisplayName(localStorage.getItem(NAME_KEY) ?? "");
+
+    const supabase = getSupabase();
+    if (!supabaseConfigured || !supabase) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session?.user) {
+        setUser(data.session.user);
         setLoading(false);
         return;
       }
-      unsub = onAuthStateChanged(auth, async (u) => {
-        if (u) {
-          setUser(u);
-          setLoading(false);
-          // Sync display name / photo to the profile (server verifies the token).
-          if (!u.isAnonymous) {
-            try {
-              const token = await u.getIdToken();
-              await fetch("/api/me", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  displayName: u.displayName,
-                  photoURL: u.photoURL,
-                }),
-              });
-            } catch {
-              /* non-fatal */
-            }
-          }
-        } else {
-          // No session yet → sign in anonymously so every visitor has a stable uid.
-          try {
-            await signInAnonymously(auth);
-          } catch {
-            setUser(null);
-            setLoading(false);
-          }
-        }
-      });
+      // Every visitor gets a stable anonymous identity so they can participate
+      // instantly — no login required.
+      const { data: signed, error } = await supabase.auth.signInAnonymously();
+      if (cancelled) return;
+      if (error) console.error("anonymous sign-in failed", error.message);
+      setUser(signed?.user ?? null);
+      setLoading(false);
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
     });
-    return () => unsub?.();
-  }, []);
 
-  const signInWithGoogle = useCallback(async () => {
-    const auth = await ensureFirebase();
-    if (auth) await signInWithPopup(auth, googleProvider);
-  }, []);
-
-  const signOutUser = useCallback(async () => {
-    const auth = await ensureFirebase();
-    if (auth) await signOut(auth); // listener re-signs in anonymously
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const authedFetch = useCallback(async (input: string, init: RequestInit = {}) => {
     const headers = new Headers(init.headers);
-    const auth = await ensureFirebase();
-    const u = auth?.currentUser;
-    if (u) headers.set("Authorization", `Bearer ${await u.getIdToken()}`);
+    const supabase = getSupabase();
+    if (supabase) {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+    }
     return fetch(input, { ...init, headers });
   }, []);
+
+  const saveDisplayName = useCallback(
+    async (name: string) => {
+      const clean = name.trim().slice(0, 40);
+      setDisplayName(clean);
+      localStorage.setItem(NAME_KEY, clean);
+      if (!clean) return;
+      await authedFetch("/api/me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: clean }),
+      });
+    },
+    [authedFetch],
+  );
 
   return (
     <Ctx.Provider
       value={{
         user,
+        uid: user?.id ?? null,
         loading,
-        isAnonymous: user?.isAnonymous ?? true,
-        signInWithGoogle,
-        signOutUser,
+        displayName,
+        saveDisplayName,
         authedFetch,
       }}
     >

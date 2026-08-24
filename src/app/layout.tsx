@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { SiteHeader } from "@/components/site-header";
 import { AuthProvider } from "@/components/auth-provider";
+import { SITE_URL } from "@/lib/site";
 
 // Set the theme class before paint to avoid a flash.
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
@@ -18,7 +19,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://civicpulse-245651121772.us-central1.run.app";
 const DESCRIPTION =
   "CivicPulse is an AI-powered hyperlocal civic platform for Delhi. Report potholes, water leaks, broken streetlights and waste with a photo — a multi-agent AI pipeline triages it, routes it to the right authority, the community verifies it, and AI confirms the fix.";
 
